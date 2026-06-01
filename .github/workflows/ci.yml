@@ -1,0 +1,241 @@
+# LedgerLoop CI/CD Pipeline
+# 
+# This workflow runs on every push and pull request:
+#   - Type-checking (TypeScript strict)
+#   - Linting (ESLint)
+#   - Full test suite (138 tests, property-based + unit + accessibility)
+#   - Production build verification
+#
+# Deployment steps are included but COMMENTED OUT until the Vercel project
+# and Aurora DSQL cluster are provisioned. Uncomment when ready to deploy.
+
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # CI: Type-check, lint, test, build
+  # ─────────────────────────────────────────────────────────────────────────
+  ci:
+    name: Type-check, Lint, Test, Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check (TypeScript strict)
+        run: npm run typecheck
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Run tests (property-based + unit + accessibility)
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # DEPLOYMENT: Vercel (commented out — uncomment when ready)
+  # ─────────────────────────────────────────────────────────────────────────
+
+  # deploy-preview:
+  #   name: Deploy Preview (PR)
+  #   needs: ci
+  #   if: github.event_name == 'pull_request'
+  #   runs-on: ubuntu-latest
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #         cache: 'npm'
+  #
+  #     - name: Install dependencies
+  #       run: npm ci
+  #
+  #     - name: Install Vercel CLI
+  #       run: npm install -g vercel@latest
+  #
+  #     - name: Pull Vercel environment (preview)
+  #       run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+  #
+  #     - name: Build for Vercel (preview)
+  #       run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+  #
+  #     - name: Deploy to Vercel (preview)
+  #       id: deploy-preview
+  #       run: |
+  #         URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+  #         echo "preview_url=$URL" >> $GITHUB_OUTPUT
+  #
+  #     - name: Comment preview URL on PR
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           github.rest.issues.createComment({
+  #             issue_number: context.issue.number,
+  #             owner: context.repo.owner,
+  #             repo: context.repo.repo,
+  #             body: `🚀 Preview deployed: ${{ steps.deploy-preview.outputs.preview_url }}`
+  #           })
+
+  # deploy-production:
+  #   name: Deploy Production
+  #   needs: ci
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   runs-on: ubuntu-latest
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #         cache: 'npm'
+  #
+  #     - name: Install dependencies
+  #       run: npm ci
+  #
+  #     - name: Install Vercel CLI
+  #       run: npm install -g vercel@latest
+  #
+  #     - name: Pull Vercel environment (production)
+  #       run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+  #
+  #     - name: Build for Vercel (production)
+  #       run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+  #
+  #     - name: Deploy to Vercel (production)
+  #       run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # LIGHTHOUSE CI: Performance gates (commented out — uncomment after deploy)
+  # ─────────────────────────────────────────────────────────────────────────
+
+  # lighthouse:
+  #   name: Lighthouse CI Performance Gates
+  #   needs: deploy-production
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   runs-on: ubuntu-latest
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #         cache: 'npm'
+  #
+  #     - name: Install dependencies
+  #       run: npm ci
+  #
+  #     - name: Run Lighthouse CI
+  #       run: |
+  #         npm install -g @lhci/cli
+  #         lhci autorun
+  #       env:
+  #         LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # DSQL SCHEMA MIGRATION (commented out — run manually or uncomment)
+  # ─────────────────────────────────────────────────────────────────────────
+
+  # migrate-schema:
+  #   name: Run DSQL Schema Migration
+  #   needs: deploy-production
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   runs-on: ubuntu-latest
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ secrets.DSQL_REGION }}
+  #
+  #     - name: Install psql v14+
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install -y postgresql-client-14
+  #
+  #     - name: Generate IAM auth token
+  #       id: token
+  #       run: |
+  #         TOKEN=$(aws dsql generate-db-connect-admin-auth-token \
+  #           --hostname ${{ secrets.DSQL_HOST }} \
+  #           --region ${{ secrets.DSQL_REGION }})
+  #         echo "::add-mask::$TOKEN"
+  #         echo "token=$TOKEN" >> $GITHUB_OUTPUT
+  #
+  #     - name: Run schema migration
+  #       run: |
+  #         psql "host=${{ secrets.DSQL_HOST }} port=5432 dbname=postgres \
+  #           user=admin password=${{ steps.token.outputs.token }} \
+  #           sslmode=require" -f src/ledger/dsql/schema.sql
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # CONCURRENCY TEST (commented out — requires live DSQL instance)
+  # ─────────────────────────────────────────────────────────────────────────
+
+  # concurrency-test:
+  #   name: Two-Client Concurrency Test (INV-3)
+  #   needs: migrate-schema
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   runs-on: ubuntu-latest
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #         cache: 'npm'
+  #
+  #     - name: Install dependencies
+  #       run: npm ci
+  #
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ secrets.DSQL_REGION }}
+  #
+  #     - name: Run two-client concurrency test
+  #       run: npm test -- --testPathPattern="concurrency"
+  #       env:
+  #         DSQL_HOST: ${{ secrets.DSQL_HOST }}
+  #         DSQL_REGION: ${{ secrets.DSQL_REGION }}
