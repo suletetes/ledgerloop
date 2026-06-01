@@ -22,7 +22,7 @@
  */
 
 import { isValidCurrency } from "@/domain/money";
-import { ok, err, type Result } from "@/domain/result";
+import { err, type Result } from "@/domain/result";
 import { equalSplit, percentSplit, exactSplit } from "@/domain/split-calculator";
 import { SettlementValidator } from "@/domain/settlement-validator";
 import type { ExpenseInput, SettlementInput, Split } from "@/domain/types";

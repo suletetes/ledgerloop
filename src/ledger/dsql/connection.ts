@@ -54,7 +54,8 @@ export async function getDsqlConnection(): Promise<ReturnType<typeof postgres>> 
   }
 
   const host = process.env.DSQL_HOST;
-  const region = process.env.DSQL_REGION ?? "us-east-1";
+  // Region is read by generateAuthToken() via process.env directly.
+  const _region = process.env.DSQL_REGION ?? "us-east-1";
 
   if (!host) {
     throw new Error("DSQL_HOST environment variable is required");
