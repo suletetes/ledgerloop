@@ -60,7 +60,7 @@ SECURE = "#10B981"      # security / auth flow
 with Diagram(
     "LedgerLoop | Request Flow",
     filename="docs/ledgerloop_architecture",
-    outformat=["png", "svg"],
+    outformat="png",
     show=False,
     direction="LR",
     graph_attr=GRAPH_ATTR,
@@ -100,4 +100,4 @@ with Diagram(
     dsql >> Edge(color=ASYNC, style="dashed", label="DPU\nmetrics") >> cloudwatch
 
 
-print("Done. Output: docs/ledgerloop_architecture.png + .svg")
+print("Done. Output: docs/ledgerloop_architecture.png")
