@@ -27,6 +27,8 @@ LedgerLoop tracks and simplifies shared expenses across groups of people in diff
 
 A layered serverless monolith: one Next.js deploy artifact on Vercel, one Aurora DSQL database.
 
+![LedgerLoop Architecture Diagram](docs/ledgerloop_architecture.png)
+
 ```
 Browser (Lagos / London / Toronto)
     │
