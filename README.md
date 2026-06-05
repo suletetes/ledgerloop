@@ -2,22 +2,22 @@
 
 **Multi-region group expense ledger where shared balances stay correct even when group members in different regions edit simultaneously.**
 
-Built for the H0 Hackathon ("Hack the Zero Stack") — AWS + Vercel | Deadline: June 30, 2026.
+Built for the H0 Hackathon ("Hack the Zero Stack")  AWS + Vercel | Deadline: June 30, 2026.
 
-> "We didn't pick Aurora DSQL because it's new — we picked it because a group ledger has a correctness invariant that eventual consistency physically cannot hold, and DSQL aborts the conflicting write instead of silently corrupting the balance."
+> "We didn't pick Aurora DSQL because it's new  we picked it because a group ledger has a correctness invariant that eventual consistency physically cannot hold, and DSQL aborts the conflicting write instead of silently corrupting the balance."
 
 ---
 
 ## What it does
 
-LedgerLoop tracks and simplifies shared expenses across groups of people in different countries. Three friends across three continents split a trip — two add an expense at the same second — and the balance never silently breaks.
+LedgerLoop tracks and simplifies shared expenses across groups of people in different countries. Three friends across three continents split a trip  two add an expense at the same second  and the balance never silently breaks.
 
 **Core features:**
-- **Expense splitting** — equal, percentage, or exact amounts with deterministic rounding (₦1,000 ÷ 3 = 334 + 333 + 333, never 999)
-- **Debt simplification** — reduces N tangled debts to the minimum number of payments (greedy min-cashflow algorithm)
-- **Settlement recording** — mark payments with a cap that prevents over-settling
-- **Multi-currency display** — store in original currency, convert at read time to each member's preference
-- **Concurrency correctness** — simultaneous edits from different regions never corrupt balances (DSQL OCC + retry)
+- **Expense splitting**  equal, percentage, or exact amounts with deterministic rounding (₦1,000 ÷ 3 = 334 + 333 + 333, never 999)
+- **Debt simplification**  reduces N tangled debts to the minimum number of payments (greedy min-cashflow algorithm)
+- **Settlement recording**  mark payments with a cap that prevents over-settling
+- **Multi-currency display**  store in original currency, convert at read time to each member's preference
+- **Concurrency correctness**  simultaneous edits from different regions never corrupt balances (DSQL OCC + retry)
 
 **What it does NOT do (MVP scope):** move real money. It tracks and simplifies debt only.
 
@@ -31,13 +31,13 @@ A layered serverless monolith: one Next.js deploy artifact on Vercel, one Aurora
 Browser (Lagos / London / Toronto)
     │
     ▼
-Vercel — Next.js App Router
+Vercel  Next.js App Router
     ├── Server Components (initial render)
     ├── Client Components (live balances, forms)
     └── Route Handlers / Server Actions (API boundary)
             │
             ▼
-        Ledger Service (domain core — all writes + derivation)
+        Ledger Service (domain core  all writes + derivation)
             ├── Auth_Guard (membership enforcement)
             ├── Split_Calculator (INV-1: shares sum to amount)
             ├── Balance_Engine (INV-2: group balances sum to zero)
@@ -54,7 +54,7 @@ Vercel — Next.js App Router
 ```
 
 **Why this architecture:**
-- Balance is an OUTPUT, not state — derived from the immutable ledger on every read
+- Balance is an OUTPUT, not state  derived from the immutable ledger on every read
 - Writes only append rows, so conflicts collide on inserts where DSQL's OCC protects you
 - Single database = no cross-service saga to get wrong
 - The browser never touches persistence directly (Req 19.6)
@@ -136,7 +136,7 @@ test/
 
 ## Correctness Invariants
 
-The system enforces six invariants — each property-tested to 100+ iterations:
+The system enforces six invariants  each property-tested to 100+ iterations:
 
 | # | Invariant | Enforced by |
 |---|-----------|-------------|
@@ -164,7 +164,7 @@ The system enforces six invariants — each property-tested to 100+ iterations:
 # Install dependencies
 npm install
 
-# Run tests (138 tests, 24 files — all pass without a database)
+# Run tests (138 tests, 24 files  all pass without a database)
 npm test
 
 # Type-check
@@ -200,13 +200,13 @@ npm run dev
 
 ### Strategy: Git push → Vercel auto-deploys → DSQL via Marketplace
 
-1. **Provision DSQL** — Use the [Vercel Marketplace → AWS DSQL](https://vercel.com/marketplace/aws/aws-dsql) integration. It provisions a cluster and auto-injects `DSQL_HOST`/`DSQL_REGION` via OIDC (no static secrets).
+1. **Provision DSQL**  Use the [Vercel Marketplace → AWS DSQL](https://vercel.com/marketplace/aws/aws-dsql) integration. It provisions a cluster and auto-injects `DSQL_HOST`/`DSQL_REGION` via OIDC (no static secrets).
 
-2. **Run the DDL** — Connect with psql v14+ and run `src/ledger/dsql/schema.sql`.
+2. **Run the DDL**  Connect with psql v14+ and run `src/ledger/dsql/schema.sql`.
 
-3. **Deploy** — Push to GitHub. Vercel auto-builds and deploys. Or: `npx vercel --prod`.
+3. **Deploy**  Push to GitHub. Vercel auto-builds and deploys. Or: `npx vercel --prod`.
 
-4. **Verify** — Register, create a group, add an expense, check balances sum to zero. Fire two simultaneous writes to capture the 40001 → retry in logs.
+4. **Verify**  Register, create a group, add an expense, check balances sum to zero. Fire two simultaneous writes to capture the 40001 → retry in logs.
 
 ### Environment Variables
 
@@ -215,7 +215,7 @@ npm run dev
 | `DSQL_HOST` | DSQL cluster endpoint | Vercel Marketplace (auto) or manual |
 | `DSQL_REGION` | AWS region | Vercel Marketplace (auto) or manual |
 
-No other secrets needed — IAM tokens are generated at runtime via `@aws-sdk/dsql-signer`.
+No other secrets needed  IAM tokens are generated at runtime via `@aws-sdk/dsql-signer`.
 
 ### Cost
 
@@ -261,13 +261,13 @@ npm run lighthouse
 
 ## Key Design Decisions
 
-1. **Balance is derived, never stored** — prevents the classic lost-update bug under concurrency
-2. **Append-only ledger** — expenses and settlements are immutable inserts; corrections are reversals
-3. **Integer minor units everywhere** — no floating point, not even for zero (BIGINT in DB, `number`/`bigint` in TS)
-4. **Validation precedes side effects** — a rejected operation never partially writes
-5. **OCC is invisible on success** — retries happen transparently; only exhaustion surfaces as an error
-6. **Single database** — INV-3 is a database guarantee (OCC), not application coordination
-7. **Pure domain core tested independently** — invariants are proven before any database exists
+1. **Balance is derived, never stored**  prevents the classic lost-update bug under concurrency
+2. **Append-only ledger**  expenses and settlements are immutable inserts; corrections are reversals
+3. **Integer minor units everywhere**  no floating point, not even for zero (BIGINT in DB, `number`/`bigint` in TS)
+4. **Validation precedes side effects**  a rejected operation never partially writes
+5. **OCC is invisible on success**  retries happen transparently; only exhaustion surfaces as an error
+6. **Single database**  INV-3 is a database guarantee (OCC), not application coordination
+7. **Pure domain core tested independently**  invariants are proven before any database exists
 
 ---
 
@@ -289,5 +289,5 @@ npm run lighthouse
 ## Hackathon Submission
 
 - **Track:** AWS Aurora DSQL
-- **Pitch:** A group ledger has a correctness invariant (balances sum to zero, no double-counting) that eventual consistency physically cannot hold. DSQL's snapshot isolation + OCC makes the conflict impossible to ignore — it surfaces as a retryable error rather than silent corruption.
+- **Pitch:** A group ledger has a correctness invariant (balances sum to zero, no double-counting) that eventual consistency physically cannot hold. DSQL's snapshot isolation + OCC makes the conflict impossible to ignore  it surfaces as a retryable error rather than silent corruption.
 - **Demo:** Two simultaneous writes → one gets 40001 → retry succeeds → both land → INV-2 holds. "12 debts → 4 payments" in the UI.
