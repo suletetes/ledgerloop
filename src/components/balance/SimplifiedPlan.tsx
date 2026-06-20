@@ -6,7 +6,7 @@ import type { Transfer } from "../../domain/types";
 import type { FxRateCache } from "../../domain/currency-display";
 
 /**
- * SimplifiedPlan — shows the minimum-payment transfer plan (Req 10.5, 10.8).
+ * SimplifiedPlan  shows the minimum-payment transfer plan (Req 10.5, 10.8).
  *
  * - Each transfer: payer, receiver, amount in viewer's currency (Req 10.5)
  * - FX unavailable fallback (Req 10.8)
@@ -47,7 +47,7 @@ export function SimplifiedPlan({
     return (
       <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-center">
         <p className="text-sm text-neutral-500">
-          No payments needed — everyone is settled up.
+          No payments needed  everyone is settled up.
         </p>
       </div>
     );

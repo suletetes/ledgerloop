@@ -4,11 +4,11 @@ import * as React from "react";
 import { MoneyAmount } from "../ui/money-amount";
 
 /**
- * BalanceSummary — shows member balances with live updates (Req 9.5, 9.6, 16.1, 16.2, 17.6).
+ * BalanceSummary  shows member balances with live updates (Req 9.5, 9.6, 16.1, 16.2, 17.6).
  *
  * - Shows member's own net position prominently first (Req 16.1)
  * - Who-owes-whom in plain language (Req 16.2)
- * - Creditor/debtor indicator NOT relying on color alone — uses text labels
+ * - Creditor/debtor indicator NOT relying on color alone  uses text labels
  *   like "owes" / "is owed" plus an icon (Req 9.5)
  * - Live updates via polling within 2 seconds, announced via aria-live="polite" (Req 9.6, 17.6)
  */
@@ -114,7 +114,7 @@ export function BalanceSummary({
                         <span className="ml-1 text-xs text-brand-600">(you)</span>
                       )}
                     </span>
-                    {/* Status indicator — NOT color alone (Req 9.5) */}
+                    {/* Status indicator  NOT color alone (Req 9.5) */}
                     {isCreditor && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
                         <span aria-hidden="true">↑</span>
@@ -129,7 +129,7 @@ export function BalanceSummary({
                     )}
                     {isEven && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-600">
-                        <span aria-hidden="true">—</span>
+                        <span aria-hidden="true"></span>
                         settled
                       </span>
                     )}
