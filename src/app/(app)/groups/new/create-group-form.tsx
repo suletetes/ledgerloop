@@ -19,7 +19,7 @@ interface CreateGroupFormProps {
 export function CreateGroupForm({ action }: CreateGroupFormProps) {
   const [state, formAction, pending] = useActionState(action, {});
 
-  // Success state — show invite affordance (Req 3.5)
+  // Success state  show invite affordance (Req 3.5)
   if (state.success && state.groupId) {
     return (
       <div className="space-y-4">

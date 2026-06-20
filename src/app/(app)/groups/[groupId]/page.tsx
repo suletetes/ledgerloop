@@ -10,7 +10,7 @@ import type { InMemoryPersistence } from "../../../../ledger/in-memory-persisten
 import { AddExpenseFlow } from "../../../../components/expense/AddExpenseFlow";
 import { SettleUpForm } from "../../../../components/settle/SettleUpForm";
 /**
- * Group view page — shows real balances, simplified debts, and actions.
+ * Group view page  shows real balances, simplified debts, and actions.
  */
 
 interface GroupViewProps {
