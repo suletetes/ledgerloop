@@ -5,7 +5,7 @@ import { getPersistence } from "../../../lib/persistence-factory";
 import type { InMemoryPersistence } from "../../../ledger/in-memory-persistence";
 
 /**
- * Groups list page — Server Component.
+ * Groups list page  Server Component.
  * Fetches real groups from persistence for the current user.
  */
 

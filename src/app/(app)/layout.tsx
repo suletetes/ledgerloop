@@ -1,9 +1,7 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import {
-  SESSION_COOKIE_NAME,
-  getSession,
-} from "../../lib/auth";
+// Auth imports (temporarily unused while guard is disabled for dev preview)
+// import { cookies } from "next/headers";
+// import { redirect } from "next/navigation";
+// import { SESSION_COOKIE_NAME, getSession } from "../../lib/auth";
 
 /**
  * Session-guarded app segment layout (Req 2.3, 19.5).
@@ -12,17 +10,19 @@ import {
  * any group-scoped content. If no valid session exists, the user is redirected
  * to the sign-in page. Client Components for interactivity are rendered as
  * children within this authenticated shell.
+ *
+ * NOTE: Auth guard temporarily disabled for development/preview.
  */
 export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  const userId = getSession(sessionToken);
-
-  if (!userId) {
-    redirect("/sign-in");
-  }
+  // Auth guard disabled for dev preview — uncomment to re-enable:
+  // const cookieStore = await cookies();
+  // const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  // const userId = getSession(sessionToken);
+  // if (!userId) {
+  //   redirect("/sign-in");
+  // }
 
   return <>{children}</>;
 }
