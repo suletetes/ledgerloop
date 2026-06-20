@@ -191,4 +191,47 @@ export class InMemoryPersistence implements Persistence {
   async groupExists(groupId: string): Promise<boolean> {
     return this.groups.some((g) => g.id === groupId);
   }
+
+  // ─── Query helpers (used by UI data fetching) ─────────────────────────────
+
+  /** Get all groups a user belongs to. */
+  getGroupsForUser(userId: string): { id: string; name: string; baseCurrency: string; memberCount: number }[] {
+    const userGroupIds = this.memberships
+      .filter((m) => m.userId === userId)
+      .map((m) => m.groupId);
+
+    return userGroupIds.map((gid) => {
+      const group = this.groups.find((g) => g.id === gid);
+      const memberCount = this.memberships.filter((m) => m.groupId === gid).length;
+      return {
+        id: group?.id ?? gid,
+        name: group?.name ?? "Unknown",
+        baseCurrency: group?.baseCurrency ?? "USD",
+        memberCount,
+      };
+    });
+  }
+
+  /** Get group details by id. */
+  getGroup(groupId: string): { id: string; name: string; baseCurrency: string } | null {
+    const g = this.groups.find((g) => g.id === groupId);
+    return g ? { id: g.id, name: g.name, baseCurrency: g.baseCurrency } : null;
+  }
+
+  /** Get members of a group with display names. */
+  getGroupMembers(groupId: string): { userId: string; displayName: string }[] {
+    const memberUserIds = this.memberships
+      .filter((m) => m.groupId === groupId)
+      .map((m) => m.userId);
+
+    return memberUserIds.map((uid) => {
+      const user = this.users.find((u) => u.id === uid);
+      return { userId: uid, displayName: user?.displayName ?? "Unknown" };
+    });
+  }
+
+  /** Get user by id. */
+  getUser(userId: string): UserRow | null {
+    return this.users.find((u) => u.id === userId) ?? null;
+  }
 }
