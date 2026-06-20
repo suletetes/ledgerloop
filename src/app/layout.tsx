@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "LedgerLoop",
   description:
-    "Multi-region group expense ledger — shared balances stay correct even with concurrent edits.",
+    "Multi-region group expense ledger  shared balances stay correct even with concurrent edits.",
 };
 
 export const viewport: Viewport = {
@@ -73,7 +73,7 @@ export default function RootLayout({
                 <span>LedgerLoop</span>
               </div>
               <p className="text-xs text-neutral-400">
-                Built for the H0 Hackathon — Vercel + Aurora DSQL
+                Built for the H0 Hackathon  Vercel + Aurora DSQL
               </p>
               <div className="flex gap-4 text-xs text-neutral-500">
                 <span>Next.js</span>
