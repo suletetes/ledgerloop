@@ -1,12 +1,16 @@
 import Link from "next/link";
-import { BalanceSummary } from "../../../../components/balance/BalanceSummary";
-import { SimplifiedPlan } from "../../../../components/balance/SimplifiedPlan";
-
+import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
+import { SESSION_COOKIE_NAME, getSession } from "../../../../lib/auth";
+import { getPersistence } from "../../../../lib/persistence-factory";
+import { deriveNetPositions } from "../../../../domain/balance-engine";
+import { simplifyDebts } from "../../../../domain/debt-simplifier";
+import { formatMinor } from "../../../../domain/money";
+import type { InMemoryPersistence } from "../../../../ledger/in-memory-persistence";
+import { AddExpenseFlow } from "../../../../components/expense/AddExpenseFlow";
+import { SettleUpForm } from "../../../../components/settle/SettleUpForm";
 /**
- * Group view page — Server Component shell (Req 16.1, 16.2, 10.5).
- *
- * Renders BalanceSummary, SimplifiedPlan, and links to add expense / settle up.
- * Client Components handle interactivity and live updates.
+ * Group view page — shows real balances, simplified debts, and actions.
  */
 
 interface GroupViewProps {
@@ -16,9 +20,42 @@ interface GroupViewProps {
 export default async function GroupViewPage({ params }: GroupViewProps) {
   const { groupId } = await params;
 
-  // In the MVP, group data would be fetched from the ledger service.
-  // For now, we render the shell with placeholder data.
-  const groupName = "Group"; // TODO: fetch from persistence
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const currentUserId = getSession(token);
+
+  if (!currentUserId) {
+    notFound();
+  }
+
+  const persistence = getPersistence();
+
+  // Get group info
+  let groupName = "Group";
+  let baseCurrency = "USD";
+  if ("getGroup" in persistence) {
+    const group = (persistence as InMemoryPersistence).getGroup(groupId);
+    if (!group) {
+      notFound();
+    }
+    groupName = group.name;
+    baseCurrency = group.baseCurrency;
+  }
+
+  // Get members
+  let members: { userId: string; displayName: string }[] = [];
+  if ("getGroupMembers" in persistence) {
+    members = (persistence as InMemoryPersistence).getGroupMembers(groupId);
+  }
+
+  // Load ledger and derive balances
+  const snapshot = await persistence.loadLedger(groupId);
+  const netPositions = deriveNetPositions(snapshot);
+  const transfers = simplifyDebts(netPositions);
+
+  // Get display name for a user
+  const nameOf = (id: string) =>
+    members.find((m) => m.userId === id)?.displayName ?? id.slice(0, 8);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -32,51 +69,96 @@ export default async function GroupViewPage({ params }: GroupViewProps) {
             ← All groups
           </Link>
           <h1 className="mt-1 text-2xl font-semibold text-neutral-900">{groupName}</h1>
+          <p className="text-sm text-neutral-500">
+            {members.length} member{members.length !== 1 ? "s" : ""} · {baseCurrency}
+          </p>
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Link
-          href={`/groups/${groupId}/add-expense`}
-          className="inline-flex min-h-touch items-center justify-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors"
-        >
-          Add expense
-        </Link>
-        <Link
-          href={`/groups/${groupId}/settle`}
-          className="inline-flex min-h-touch items-center justify-center rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors"
-        >
-          Settle up
-        </Link>
-      </div>
-
-      {/* Balance Summary (Req 16.1, 16.2, 9.5, 9.6, 17.6) */}
+      {/* Balances section */}
       <section className="mt-8" aria-labelledby="balance-heading">
-        <h2 id="balance-heading" className="text-lg font-medium text-neutral-900">
+        <h2 id="balance-heading" className="text-lg font-semibold text-neutral-900">
           Balances
         </h2>
-        <div className="mt-3">
-          <BalanceSummary
-            groupId={groupId}
-            currentUserId="current-user" // TODO: pass from session
-            members={[]}
-          />
-        </div>
+        {members.length === 0 || snapshot.expenses.length === 0 ? (
+          <div className="mt-3 rounded-lg border border-neutral-200 bg-neutral-50 p-6 text-center">
+            <p className="text-sm text-neutral-500">No expenses yet. Add one below to see balances.</p>
+          </div>
+        ) : (
+          <ul className="mt-3 space-y-2" role="list" aria-live="polite">
+            {members.map((m) => {
+              const pos = netPositions.get(m.userId) ?? 0;
+              const isPositive = pos > 0;
+              const isNegative = pos < 0;
+              return (
+                <li key={m.userId} className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3">
+                  <span className="font-medium text-neutral-900">
+                    {m.displayName}
+                    {m.userId === currentUserId && (
+                      <span className="ml-1.5 text-xs text-neutral-400">(you)</span>
+                    )}
+                  </span>
+                  <span className={`font-semibold tabular-nums ${isPositive ? "text-success" : isNegative ? "text-danger" : "text-neutral-500"}`}>
+                    {isPositive ? "+" : ""}{formatMinor(Math.abs(pos), baseCurrency)}
+                    {isPositive && <span className="ml-1 text-xs font-normal">owed to them</span>}
+                    {isNegative && <span className="ml-1 text-xs font-normal">owes</span>}
+                    {pos === 0 && <span className="ml-1 text-xs font-normal">settled</span>}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
 
-      {/* Simplified Plan (Req 10.5, 10.8) */}
-      <section className="mt-8" aria-labelledby="plan-heading">
-        <h2 id="plan-heading" className="text-lg font-medium text-neutral-900">
-          Suggested payments
-        </h2>
-        <div className="mt-3">
-          <SimplifiedPlan
+      {/* Simplified payments section */}
+      {transfers.length > 0 && (
+        <section className="mt-8" aria-labelledby="plan-heading">
+          <h2 id="plan-heading" className="text-lg font-semibold text-neutral-900">
+            Suggested payments
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            {transfers.length} payment{transfers.length !== 1 ? "s" : ""} to settle all debts
+          </p>
+          <ul className="mt-3 space-y-2" role="list">
+            {transfers.map((t, i) => (
+              <li key={i} className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3">
+                <span className="text-neutral-700">
+                  <span className="font-medium">{nameOf(t.from)}</span>
+                  {" → "}
+                  <span className="font-medium">{nameOf(t.to)}</span>
+                </span>
+                <span className="font-semibold tabular-nums text-neutral-900">
+                  {formatMinor(t.amountMinor, baseCurrency)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Actions */}
+      <section className="mt-8 space-y-4">
+        <h2 className="text-lg font-semibold text-neutral-900">Actions</h2>
+        <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <AddExpenseFlow
             groupId={groupId}
-            viewerCurrency="USD" // TODO: pass from user preference
-            members={[]}
+            members={members.map((m) => ({ id: m.userId, displayName: m.displayName }))}
+            currentUserId={currentUserId}
+            baseCurrency={baseCurrency}
           />
         </div>
+
+        {transfers.length > 0 && (
+          <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <SettleUpForm
+              groupId={groupId}
+              members={members.map((m) => ({ id: m.userId, displayName: m.displayName }))}
+              currentUserId={currentUserId}
+              currency={baseCurrency}
+            />
+          </div>
+        )}
       </section>
     </div>
   );
