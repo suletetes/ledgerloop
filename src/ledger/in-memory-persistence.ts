@@ -195,7 +195,9 @@ export class InMemoryPersistence implements Persistence {
   // ─── Query helpers (used by UI data fetching) ─────────────────────────────
 
   /** Get all groups a user belongs to. */
-  getGroupsForUser(userId: string): { id: string; name: string; baseCurrency: string; memberCount: number }[] {
+  async getGroupsForUser(
+    userId: string,
+  ): Promise<{ id: string; name: string; baseCurrency: string; memberCount: number }[]> {
     const userGroupIds = this.memberships
       .filter((m) => m.userId === userId)
       .map((m) => m.groupId);
@@ -213,13 +215,17 @@ export class InMemoryPersistence implements Persistence {
   }
 
   /** Get group details by id. */
-  getGroup(groupId: string): { id: string; name: string; baseCurrency: string } | null {
+  async getGroup(
+    groupId: string,
+  ): Promise<{ id: string; name: string; baseCurrency: string } | null> {
     const g = this.groups.find((g) => g.id === groupId);
     return g ? { id: g.id, name: g.name, baseCurrency: g.baseCurrency } : null;
   }
 
   /** Get members of a group with display names. */
-  getGroupMembers(groupId: string): { userId: string; displayName: string }[] {
+  async getGroupMembers(
+    groupId: string,
+  ): Promise<{ userId: string; displayName: string }[]> {
     const memberUserIds = this.memberships
       .filter((m) => m.groupId === groupId)
       .map((m) => m.userId);
@@ -231,7 +237,7 @@ export class InMemoryPersistence implements Persistence {
   }
 
   /** Get user by id. */
-  getUser(userId: string): UserRow | null {
+  async getUser(userId: string): Promise<UserRow | null> {
     return this.users.find((u) => u.id === userId) ?? null;
   }
 }

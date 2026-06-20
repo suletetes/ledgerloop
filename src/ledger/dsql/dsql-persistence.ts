@@ -22,6 +22,9 @@ import type {
   UserRow,
   GroupRow,
   MembershipRow,
+  GroupSummary,
+  GroupDetails,
+  GroupMember,
 } from "../persistence";
 import type { Result } from "@/domain/result";
 import type { LedgerSnapshot } from "@/domain/balance-engine";
@@ -301,6 +304,96 @@ export class DsqlPersistence implements Persistence {
       ) AS exists
     `;
     return (result[0]?.exists as boolean) ?? false;
+  }
+
+  /**
+   * List all groups a user belongs to, with member counts (read view).
+   */
+  async getGroupsForUser(userId: string): Promise<GroupSummary[]> {
+    const sql = await this.sqlPromise;
+    const rows = await sql`
+      SELECT
+        g.id            AS id,
+        g.name          AS name,
+        g.base_currency AS base_currency,
+        (
+          SELECT COUNT(*) FROM group_members gm2
+          WHERE gm2.group_id = g.id
+        ) AS member_count
+      FROM groups g
+      JOIN group_members gm ON gm.group_id = g.id
+      WHERE gm.user_id = ${userId}
+      ORDER BY g.created_at ASC
+    `;
+    return rows.map((r) => ({
+      id: r.id as string,
+      name: r.name as string,
+      baseCurrency: r.base_currency as string,
+      memberCount: Number(r.member_count),
+    }));
+  }
+
+  /**
+   * Fetch group reference details by id, or null if it does not exist.
+   */
+  async getGroup(groupId: string): Promise<GroupDetails | null> {
+    const sql = await this.sqlPromise;
+    const rows = await sql`
+      SELECT id, name, base_currency
+      FROM groups WHERE id = ${groupId}
+      LIMIT 1
+    `;
+    const r = rows[0];
+    if (!r) {
+      return null;
+    }
+    return {
+      id: r.id as string,
+      name: r.name as string,
+      baseCurrency: r.base_currency as string,
+    };
+  }
+
+  /**
+   * List the members of a group resolved to display names (read view).
+   */
+  async getGroupMembers(groupId: string): Promise<GroupMember[]> {
+    const sql = await this.sqlPromise;
+    const rows = await sql`
+      SELECT gm.user_id AS user_id, u.display_name AS display_name
+      FROM group_members gm
+      LEFT JOIN users u ON u.id = gm.user_id
+      WHERE gm.group_id = ${groupId}
+      ORDER BY gm.joined_at ASC
+    `;
+    return rows.map((r) => ({
+      userId: r.user_id as string,
+      displayName: (r.display_name as string | null) ?? "Unknown",
+    }));
+  }
+
+  /**
+   * Fetch a user row by id, or null if it does not exist.
+   */
+  async getUser(userId: string): Promise<UserRow | null> {
+    const sql = await this.sqlPromise;
+    const rows = await sql`
+      SELECT id, display_name, email, home_region, currency_pref, created_at
+      FROM users WHERE id = ${userId}
+      LIMIT 1
+    `;
+    const r = rows[0];
+    if (!r) {
+      return null;
+    }
+    return {
+      id: r.id as string,
+      displayName: r.display_name as string,
+      email: r.email as string,
+      homeRegion: r.home_region as string,
+      currencyPref: r.currency_pref as string,
+      createdAt: String(r.created_at),
+    };
   }
 }
 

@@ -95,6 +95,35 @@ export interface MembershipRow {
   joinedAt: string;
 }
 
+// ─── Read view types (used by UI data fetching) ──────────────────────────────
+
+/**
+ * A summary of a group as shown in the groups list.
+ */
+export interface GroupSummary {
+  id: string;
+  name: string;
+  baseCurrency: string;
+  memberCount: number;
+}
+
+/**
+ * Group reference details.
+ */
+export interface GroupDetails {
+  id: string;
+  name: string;
+  baseCurrency: string;
+}
+
+/**
+ * A group member resolved to a display name.
+ */
+export interface GroupMember {
+  userId: string;
+  displayName: string;
+}
+
 // ─── Persistence Interface ───────────────────────────────────────────────────
 
 /**
@@ -158,4 +187,25 @@ export interface Persistence {
    * Check whether a group exists.
    */
   groupExists(groupId: string): Promise<boolean>;
+
+  /**
+   * List all groups a user belongs to, with member counts, for the groups list
+   * view.
+   */
+  getGroupsForUser(userId: string): Promise<GroupSummary[]>;
+
+  /**
+   * Fetch group reference details by id, or `null` if it does not exist.
+   */
+  getGroup(groupId: string): Promise<GroupDetails | null>;
+
+  /**
+   * List the members of a group resolved to display names.
+   */
+  getGroupMembers(groupId: string): Promise<GroupMember[]>;
+
+  /**
+   * Fetch a user row by id, or `null` if it does not exist.
+   */
+  getUser(userId: string): Promise<UserRow | null>;
 }

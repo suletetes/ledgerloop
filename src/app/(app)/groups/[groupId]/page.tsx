@@ -6,7 +6,6 @@ import { getPersistence } from "../../../../lib/persistence-factory";
 import { deriveNetPositions } from "../../../../domain/balance-engine";
 import { simplifyDebts } from "../../../../domain/debt-simplifier";
 import { formatMinor } from "../../../../domain/money";
-import type { InMemoryPersistence } from "../../../../ledger/in-memory-persistence";
 import { AddExpenseFlow } from "../../../../components/expense/AddExpenseFlow";
 import { SettleUpForm } from "../../../../components/settle/SettleUpForm";
 /**
@@ -30,23 +29,16 @@ export default async function GroupViewPage({ params }: GroupViewProps) {
 
   const persistence = getPersistence();
 
-  // Get group info
-  let groupName = "Group";
-  let baseCurrency = "USD";
-  if ("getGroup" in persistence) {
-    const group = (persistence as InMemoryPersistence).getGroup(groupId);
-    if (!group) {
-      notFound();
-    }
-    groupName = group.name;
-    baseCurrency = group.baseCurrency;
+  // Get group info — works against both the in-memory fake and real DSQL.
+  const group = await persistence.getGroup(groupId);
+  if (!group) {
+    notFound();
   }
+  const groupName = group.name;
+  const baseCurrency = group.baseCurrency;
 
   // Get members
-  let members: { userId: string; displayName: string }[] = [];
-  if ("getGroupMembers" in persistence) {
-    members = (persistence as InMemoryPersistence).getGroupMembers(groupId);
-  }
+  const members = await persistence.getGroupMembers(groupId);
 
   // Load ledger and derive balances
   const snapshot = await persistence.loadLedger(groupId);

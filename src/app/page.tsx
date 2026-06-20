@@ -57,7 +57,10 @@ export default function HomePage() {
             finds the fewest transfers to zero everyone out.
           </p>
         </div>
-        <div className="rounded-xl border border-neutral-200 bg-white p-6 text-left shadow-sm">
+        <Link
+          href="/demo/concurrency"
+          className="group rounded-xl border border-neutral-200 bg-white p-6 text-left shadow-sm transition-colors hover:border-brand-300 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+        >
           <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-700 text-lg font-bold">
             ⚡
           </div>
@@ -66,7 +69,10 @@ export default function HomePage() {
             Two edits at the same instant? Aurora DSQL aborts the conflict and
             retries transparently. Your balance never silently breaks.
           </p>
-        </div>
+          <span className="mt-2 inline-block text-sm font-medium text-brand-600 group-hover:underline">
+            See the proof →
+          </span>
+        </Link>
       </div>
     </section>
   );
