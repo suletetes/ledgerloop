@@ -38,7 +38,13 @@ export default function RootLayout({
         {/* Banner landmark */}
         <header role="banner" className="border-b border-neutral-200 bg-white">
           <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-            <span className="text-lg font-semibold text-brand-700">
+            <span className="flex items-center gap-2 text-lg font-semibold text-brand-700">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect width="28" height="28" rx="6" fill="currentColor" fillOpacity="0.1"/>
+                <path d="M8 20V8h2v10h6v2H8z" fill="currentColor"/>
+                <path d="M12 14l4-6h2.5l-4 6 4 6H16l-4-6z" fill="currentColor" fillOpacity="0.6"/>
+                <circle cx="20" cy="10" r="2.5" fill="currentColor" fillOpacity="0.8"/>
+              </svg>
               LedgerLoop
             </span>
             {/* Navigation landmark */}
@@ -55,8 +61,28 @@ export default function RootLayout({
 
         {/* Contentinfo landmark */}
         <footer role="contentinfo" className="border-t border-neutral-200 bg-white">
-          <div className="mx-auto max-w-5xl px-4 py-4 text-center text-xs text-neutral-500">
-            LedgerLoop — Multi-region group expense ledger
+          <div className="mx-auto max-w-5xl px-4 py-6">
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+              <div className="flex items-center gap-2 text-sm text-neutral-600">
+                <svg width="18" height="18" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect width="28" height="28" rx="6" fill="currentColor" fillOpacity="0.1"/>
+                  <path d="M8 20V8h2v10h6v2H8z" fill="currentColor"/>
+                  <path d="M12 14l4-6h2.5l-4 6 4 6H16l-4-6z" fill="currentColor" fillOpacity="0.6"/>
+                  <circle cx="20" cy="10" r="2.5" fill="currentColor" fillOpacity="0.8"/>
+                </svg>
+                <span>LedgerLoop</span>
+              </div>
+              <p className="text-xs text-neutral-400">
+                Built for the H0 Hackathon — Vercel + Aurora DSQL
+              </p>
+              <div className="flex gap-4 text-xs text-neutral-500">
+                <span>Next.js</span>
+                <span aria-hidden="true">·</span>
+                <span>TypeScript</span>
+                <span aria-hidden="true">·</span>
+                <span>Aurora DSQL</span>
+              </div>
+            </div>
           </div>
         </footer>
       </body>
