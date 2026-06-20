@@ -32,7 +32,7 @@ export interface MoneyInputProps {
 }
 
 /**
- * MoneyInput — accessible input component for monetary amounts.
+ * MoneyInput  accessible input component for monetary amounts.
  *
  * - Accepts major-unit values (e.g. "12.34") from the user
  * - Converts to integer minor units via parseMajorToMinor before submission (Req 12.4)

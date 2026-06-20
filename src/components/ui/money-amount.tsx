@@ -31,7 +31,7 @@ export interface MoneyAmountProps {
 }
 
 /**
- * MoneyAmount — shared component for displaying monetary amounts.
+ * MoneyAmount  shared component for displaying monetary amounts.
  *
  * - Formats integer minor units into correct major/minor presentation (Req 12.3)
  * - Always exposes the original amount alongside any converted value (Req 14.3)
@@ -84,7 +84,7 @@ export function MoneyAmount({
     );
   }
 
-  // No FX rate available — show original with unavailable indicator (Req 14.4, 10.8).
+  // No FX rate available  show original with unavailable indicator (Req 14.4, 10.8).
   return (
     <span
       className={cn("inline-flex flex-wrap items-baseline gap-1", className)}

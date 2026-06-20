@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "../utils/cn";
 
 /**
- * SubmitButton — resilient form submission button (Req 20.5, 22.3, 22.5).
+ * SubmitButton  resilient form submission button (Req 20.5, 22.3, 22.5).
  *
  * - Shows progress indication while in flight (Req 20.5)
  * - Prevents duplicate submission (disabled while pending)
@@ -20,7 +20,7 @@ export interface SubmitButtonProps {
   unavailable?: boolean;
   /** Additional CSS class names. */
   className?: string;
-  /** Button type — defaults to "submit". */
+  /** Button type  defaults to "submit". */
   type?: "submit" | "button";
   /** Click handler for retry scenarios. */
   onClick?: () => void;
@@ -68,7 +68,7 @@ export function SubmitButton({
           role="alert"
           className="text-xs text-warning"
         >
-          Service temporarily unavailable. Your data is preserved — please retry.
+          Service temporarily unavailable. Your data is preserved  please retry.
         </p>
       )}
     </div>
