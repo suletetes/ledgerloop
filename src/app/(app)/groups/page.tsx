@@ -2,7 +2,6 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE_NAME, getSession } from "../../../lib/auth";
 import { getPersistence } from "../../../lib/persistence-factory";
-import type { InMemoryPersistence } from "../../../ledger/in-memory-persistence";
 
 /**
  * Groups list page  Server Component.
@@ -18,14 +17,8 @@ interface GroupSummary {
 
 async function getGroups(userId: string): Promise<GroupSummary[]> {
   const persistence = getPersistence();
-
-  // Use the query helper on InMemoryPersistence
-  if ("getGroupsForUser" in persistence) {
-    return (persistence as InMemoryPersistence).getGroupsForUser(userId);
-  }
-
-  // For DsqlPersistence, a proper SQL query would go here
-  return [];
+  // Works against both the in-memory fake and the real DSQL adapter.
+  return persistence.getGroupsForUser(userId);
 }
 
 export default async function GroupsPage() {
