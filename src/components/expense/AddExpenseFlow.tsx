@@ -10,7 +10,7 @@ import { isValidCurrency } from "../../domain/money";
 import type { SplitType, Split } from "../../domain/types";
 
 /**
- * AddExpenseFlow — single primary flow for adding an expense (Req 15.1-15.6, 22.4).
+ * AddExpenseFlow  single primary flow for adding an expense (Req 15.1-15.6, 22.4).
  *
  * - Amount, currency, description, payer, splitType, participants (Req 15.1)
  * - For 'equal': shows each participant's computed share before submit (Req 15.2)

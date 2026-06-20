@@ -7,7 +7,7 @@ import { MoneyInput } from "../ui/money-input";
 import { SubmitButton } from "../ui/submit-button";
 
 /**
- * SettleUpForm — record a settlement between two members (Req 16.3, 16.4, 16.5).
+ * SettleUpForm  record a settlement between two members (Req 16.3, 16.4, 16.5).
  *
  * - Pre-fills payer, receiver, amount from displayed debt (Req 16.3)
  * - Confirmation shows recorded settlement + resulting balances (Req 16.4)
@@ -142,7 +142,7 @@ export function SettleUpForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-      {/* Payer (Req 16.3 — pre-filled) */}
+      {/* Payer (Req 16.3  pre-filled) */}
       <div className="space-y-1">
         <Label htmlFor="settle-payer">Who is paying?</Label>
         <select
@@ -167,7 +167,7 @@ export function SettleUpForm({
         )}
       </div>
 
-      {/* Receiver (Req 16.3 — pre-filled) */}
+      {/* Receiver (Req 16.3  pre-filled) */}
       <div className="space-y-1">
         <Label htmlFor="settle-receiver">Who is receiving?</Label>
         <select
@@ -192,7 +192,7 @@ export function SettleUpForm({
         )}
       </div>
 
-      {/* Amount (Req 16.3 — pre-filled from displayed debt) */}
+      {/* Amount (Req 16.3  pre-filled from displayed debt) */}
       <div className="space-y-1">
         <Label htmlFor="settle-amount">Amount</Label>
         <MoneyInput
