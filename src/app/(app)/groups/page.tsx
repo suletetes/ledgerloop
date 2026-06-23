@@ -17,7 +17,7 @@ interface GroupSummary {
 
 async function getGroups(userId: string): Promise<GroupSummary[]> {
   const persistence = getPersistence();
-  // Works against both the in-memory fake and the real DSQL adapter.
+  // Works against both the in-memory fake and the real Aurora adapter.
   return persistence.getGroupsForUser(userId);
 }
 

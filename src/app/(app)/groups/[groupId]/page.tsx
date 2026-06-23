@@ -29,7 +29,7 @@ export default async function GroupViewPage({ params }: GroupViewProps) {
 
   const persistence = getPersistence();
 
-  // Get group info — works against both the in-memory fake and real DSQL.
+  // Get group info — works against both the in-memory fake and real Aurora.
   const group = await persistence.getGroup(groupId);
   if (!group) {
     notFound();

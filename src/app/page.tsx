@@ -66,7 +66,7 @@ export default function HomePage() {
           </div>
           <h3 className="font-semibold text-neutral-900">Concurrent-safe</h3>
           <p className="mt-1 text-sm text-neutral-500">
-            Two edits at the same instant? Aurora DSQL aborts the conflict and
+            Two edits at the same instant? Aurora PostgreSQL aborts the conflict and
             retries transparently. Your balance never silently breaks.
           </p>
           <span className="mt-2 inline-block text-sm font-medium text-brand-600 group-hover:underline">

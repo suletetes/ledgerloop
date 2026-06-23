@@ -73,14 +73,14 @@ export default function RootLayout({
                 <span>LedgerLoop</span>
               </div>
               <p className="text-xs text-neutral-400">
-                Built for the H0 Hackathon  Vercel + Aurora DSQL
+                Built for the H0 Hackathon — Vercel + Aurora PostgreSQL
               </p>
               <div className="flex gap-4 text-xs text-neutral-500">
                 <span>Next.js</span>
                 <span aria-hidden="true">·</span>
                 <span>TypeScript</span>
                 <span aria-hidden="true">·</span>
-                <span>Aurora DSQL</span>
+                <span>Aurora PostgreSQL</span>
               </div>
             </div>
           </div>
