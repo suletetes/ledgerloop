@@ -8,6 +8,7 @@ import { simplifyDebts } from "../../../../domain/debt-simplifier";
 import { formatMinor } from "../../../../domain/money";
 import { AddExpenseFlow } from "../../../../components/expense/AddExpenseFlow";
 import { SettleUpForm } from "../../../../components/settle/SettleUpForm";
+import { addExpenseAction } from "./actions";
 /**
  * Group view page  shows real balances, simplified debts, and actions.
  */
@@ -142,6 +143,7 @@ export default async function GroupViewPage({ params }: GroupViewProps) {
             members={members.map((m) => ({ id: m.userId, displayName: m.displayName }))}
             currentUserId={currentUserId}
             baseCurrency={baseCurrency}
+            addExpenseAction={addExpenseAction}
           />
         </div>
 

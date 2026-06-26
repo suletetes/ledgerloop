@@ -31,6 +31,17 @@ export interface AddExpenseFlowProps {
   currentUserId: string;
   baseCurrency: string;
   onSuccess?: () => void;
+  addExpenseAction?: (input: {
+    groupId: string;
+    amountMinor: number;
+    currency: string;
+    description: string;
+    paidBy: string;
+    splitType: SplitType;
+    participants: string[];
+    percents?: number[];
+    exactShares?: number[];
+  }) => Promise<{ ok: boolean; error?: string }>;
 }
 
 interface FormState {
@@ -46,11 +57,12 @@ interface FormState {
 }
 
 export function AddExpenseFlow({
-  groupId: _groupId,
+  groupId,
   members,
   currentUserId,
   baseCurrency,
-  onSuccess,
+  onSuccess: _onSuccess,
+  addExpenseAction,
 }: AddExpenseFlowProps) {
   const [form, setForm] = React.useState<FormState>({
     amountMinor: null,
@@ -165,12 +177,30 @@ export function AddExpenseFlow({
     setUnavailable(false);
 
     try {
-      // TODO: Wire to server action / API call
-      // For now, simulate success
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      onSuccess?.();
+      if (addExpenseAction) {
+        const result = await addExpenseAction({
+          groupId,
+          amountMinor: form.amountMinor!,
+          currency: form.currency,
+          description: form.description.trim(),
+          paidBy: form.paidBy,
+          splitType: form.splitType,
+          participants: form.participants,
+          percents: form.splitType === "percent"
+            ? form.participants.map((id) => parseFloat(form.percents[id] || "0") || 0)
+            : undefined,
+          exactShares: form.splitType === "exact"
+            ? form.participants.map((id) => parseInt(form.exactShares[id] || "0", 10) || 0)
+            : undefined,
+        });
+        if (!result.ok) {
+          setSubmitError(result.error || "Failed to add expense.");
+          return;
+        }
+      }
+      // Reload the page to show updated balances
+      window.location.reload();
     } catch {
-      // Check if it's an unavailability error (Req 22.3)
       setUnavailable(true);
       setSubmitError("Failed to add expense. Please try again.");
     } finally {
