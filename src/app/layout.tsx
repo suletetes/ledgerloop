@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { SESSION_COOKIE_NAME, getSession } from "../lib/auth";
+import { SESSION_COOKIE_NAME, getSessionAsync } from "../lib/auth";
 import { signOutAction } from "./actions";
 import "./globals.css";
 
@@ -24,7 +24,7 @@ export default async function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  const isLoggedIn = !!getSession(sessionToken);
+  const isLoggedIn = !!(await getSessionAsync(sessionToken));
 
   return (
     <html lang="en">
