@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { signIn, SESSION_COOKIE_NAME, getSession } from "../../../lib/auth";
+import { signInAsync, SESSION_COOKIE_NAME, getSessionAsync } from "../../../lib/auth";
 import { SignInForm } from "./sign-in-form";
 
 /**
@@ -32,7 +32,7 @@ async function signInAction(
     };
   }
 
-  const result = signIn(email, password);
+  const result = await signInAsync(email, password);
 
   if (!result.ok) {
     // Non-enumerating error message (Req 2.2)
@@ -58,7 +58,7 @@ export default async function SignInPage() {
   // If already authenticated, redirect to groups
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  if (getSession(sessionToken)) {
+  if (await getSessionAsync(sessionToken)) {
     redirect("/groups");
   }
 

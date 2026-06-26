@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { hashPassword, createSession, SESSION_COOKIE_NAME, getSession } from "../../../lib/auth";
-import { setCredential } from "../../../lib/auth-store";
+import { hashPassword, createSession, SESSION_COOKIE_NAME, getSessionAsync } from "../../../lib/auth";
+import { setCredentialAsync } from "../../../lib/auth-store";
 import { isValidCurrency } from "../../../domain/money";
 import { getPersistence } from "../../../lib/persistence-factory";
 import { registerMember } from "../../../ledger/services";
@@ -93,7 +93,7 @@ async function registerAction(
 
   // Store auth credential and create session
   const passwordHash = hashPassword(password);
-  setCredential(email, userId, passwordHash);
+  await setCredentialAsync(email, userId, passwordHash);
 
   const { token } = createSession(userId);
   const cookieStore = await cookies();
@@ -110,7 +110,7 @@ async function registerAction(
 export default async function RegisterPage() {
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  if (getSession(sessionToken)) {
+  if (await getSessionAsync(sessionToken)) {
     redirect("/groups");
   }
 
