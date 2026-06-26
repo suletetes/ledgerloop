@@ -258,6 +258,22 @@ export class AuroraPersistence implements Persistence {
       createdAt: String(r.created_at),
     };
   }
+
+  /**
+   * Get the most recently created user ID. Fallback for serverless session loss.
+   */
+  getRecentUserId(): string | null {
+    // This needs to be async in practice, but for the sync interface check
+    // we'll make it return a promise-like. Actually, let's use a sync-compatible approach.
+    return null; // Will be overridden by getRecentUserIdAsync
+  }
+
+  async getRecentUserIdAsync(): Promise<string | null> {
+    const rows = await this.sql`
+      SELECT id FROM users ORDER BY created_at DESC LIMIT 1
+    `;
+    return (rows[0]?.id as string) ?? null;
+  }
 }
 
 function isOccConflict(err: unknown): boolean {

@@ -240,4 +240,10 @@ export class InMemoryPersistence implements Persistence {
   async getUser(userId: string): Promise<UserRow | null> {
     return this.users.find((u) => u.id === userId) ?? null;
   }
+
+  /** Fallback for serverless session loss: get the most recently created user. */
+  async getRecentUserIdAsync(): Promise<string | null> {
+    if (this.users.length === 0) return null;
+    return this.users[this.users.length - 1]!.id;
+  }
 }
