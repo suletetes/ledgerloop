@@ -60,7 +60,7 @@ export function getAuroraConnection(): ReturnType<typeof postgres> {
     // Connection pool settings for serverless reuse
     max: 5,
     idle_timeout: 20,
-    connect_timeout: 10,
+    connect_timeout: 30,  // 30s to handle Aurora Serverless v2 cold start
   });
 
   return cachedSql;

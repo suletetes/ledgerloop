@@ -21,13 +21,17 @@ export default async function GroupViewPage({ params }: GroupViewProps) {
 
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  const currentUserId = getSession(token);
+  let currentUserId = getSession(token);
+
+  // Fallback for serverless session loss: use most recent user from DB
+  const persistence = getPersistence();
+  if (!currentUserId && "getRecentUserIdAsync" in persistence) {
+    currentUserId = await (persistence as { getRecentUserIdAsync: () => Promise<string | null> }).getRecentUserIdAsync();
+  }
 
   if (!currentUserId) {
     notFound();
   }
-
-  const persistence = getPersistence();
 
   // Get group info — works against both the in-memory fake and real Aurora.
   const group = await persistence.getGroup(groupId);

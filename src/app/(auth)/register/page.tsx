@@ -70,9 +70,14 @@ async function registerAction(
     return { fieldErrors, values };
   }
 
-  // Persist user into the ledger
+  // Persist user into the ledger (retry once on connection timeout for Aurora cold start)
   const persistence = getPersistence();
-  const result = await registerMember(persistence, { displayName, email, homeRegion });
+  let result = await registerMember(persistence, { displayName, email, homeRegion });
+
+  if (!result.ok && result.error.message.includes("CONNECT_TIMEOUT")) {
+    // Aurora Serverless v2 cold start — retry once
+    result = await registerMember(persistence, { displayName, email, homeRegion });
+  }
 
   if (!result.ok) {
     return { error: result.error.message, values };
