@@ -64,3 +64,17 @@ CREATE INDEX IF NOT EXISTS idx_settlements_group ON settlements (group_id);
 
 -- Set default transaction isolation to SERIALIZABLE for OCC (SQLSTATE 40001)
 ALTER DATABASE ledgerloop SET default_transaction_isolation = 'serializable';
+
+-- Auth credentials table (password hashes persisted for serverless survival)
+CREATE TABLE IF NOT EXISTS credentials (
+  email         TEXT PRIMARY KEY,
+  user_id       UUID NOT NULL REFERENCES users(id),
+  password_hash TEXT NOT NULL
+);
+
+-- Session table (survives serverless cold starts)
+CREATE TABLE IF NOT EXISTS sessions (
+  token      TEXT PRIMARY KEY,
+  user_id    UUID NOT NULL REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
