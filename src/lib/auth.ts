@@ -75,6 +75,7 @@ const sessions = new Map<string, string>();
 /**
  * Create a session for the given user id.
  * Returns the session token and cookie header value.
+ * Also persists to Aurora if available.
  */
 export function createSession(userId: string): {
   token: string;
@@ -82,6 +83,16 @@ export function createSession(userId: string): {
 } {
   const token = randomBytes(32).toString("hex");
   sessions.set(token, userId);
+
+  // Persist session to DB (fire-and-forget for non-blocking)
+  if (process.env.AURORA_HOST) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { getAuroraConnection } = require("../ledger/aurora/connection") as typeof import("../ledger/aurora/connection");
+      const sql = getAuroraConnection();
+      sql`INSERT INTO sessions (token, user_id) VALUES (${token}, ${userId}) ON CONFLICT (token) DO NOTHING`.catch(() => {});
+    } catch { /* non-critical */ }
+  }
 
   const cookieHeader = [
     `${SESSION_COOKIE_NAME}=${token}`,
@@ -101,6 +112,34 @@ export function createSession(userId: string): {
 export function getSession(token: string | undefined | null): string | null {
   if (!token) return null;
   return sessions.get(token) ?? null;
+}
+
+/**
+ * Async session lookup — checks in-memory first, falls back to DB.
+ */
+export async function getSessionAsync(token: string | undefined | null): Promise<string | null> {
+  if (!token) return null;
+
+  // Fast path: in-memory
+  const mem = sessions.get(token);
+  if (mem) return mem;
+
+  // Slow path: query DB
+  if (process.env.AURORA_HOST) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { getAuroraConnection } = require("../ledger/aurora/connection") as typeof import("../ledger/aurora/connection");
+      const sql = getAuroraConnection();
+      const rows = await sql`SELECT user_id FROM sessions WHERE token = ${token} LIMIT 1`;
+      if (rows.length > 0 && rows[0]) {
+        const userId = rows[0].user_id as string;
+        sessions.set(token, userId); // Cache for this instance
+        return userId;
+      }
+    } catch { /* fall through */ }
+  }
+
+  return null;
 }
 
 /**
@@ -152,6 +191,31 @@ export function signIn(email: string, password: string): SignInResult {
   const credential = getCredential(email);
 
   // Non-enumerating: same message whether email doesn't exist or password is wrong
+  if (!credential) {
+    return { ok: false, error: SIGN_IN_FAILURE_MESSAGE };
+  }
+
+  if (!verifyPassword(password, credential.passwordHash)) {
+    return { ok: false, error: SIGN_IN_FAILURE_MESSAGE };
+  }
+
+  const { token, cookieHeader } = createSession(credential.userId);
+  return { ok: true, userId: credential.userId, token, cookieHeader };
+}
+
+/**
+ * Async sign-in that checks the database for credentials (survives serverless
+ * cold starts where the in-memory store is empty).
+ */
+export async function signInAsync(email: string, password: string): Promise<SignInResult> {
+  // Try in-memory first (fast path on warm instance)
+  const memResult = signIn(email, password);
+  if (memResult.ok) return memResult;
+
+  // Fall back to DB lookup
+  const { getCredentialAsync } = await import("./auth-store");
+  const credential = await getCredentialAsync(email);
+
   if (!credential) {
     return { ok: false, error: SIGN_IN_FAILURE_MESSAGE };
   }
