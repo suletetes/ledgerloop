@@ -24,14 +24,9 @@ async function getGroups(userId: string): Promise<GroupSummary[]> {
 export default async function GroupsPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  let userId = await getSessionAsync(token);
+  const userId = await getSessionAsync(token);
 
-  // Fallback for serverless session loss: use the most recent user from DB
-  const persistence = getPersistence();
-  if (!userId && "getRecentUserIdAsync" in persistence) {
-    userId = await (persistence as { getRecentUserIdAsync: () => Promise<string | null> }).getRecentUserIdAsync();
-  }
-
+  // Auth guard in layout ensures userId is always set here
   const groups = userId ? await getGroups(userId) : [];
 
   return (
