@@ -28,14 +28,9 @@ export interface ActionResult {
 export async function addExpenseAction(input: AddExpenseInput): Promise<ActionResult> {
   const persistence = getPersistence();
 
-  // Get caller from session, fallback to recent user
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  let callerId = await getSessionAsync(token);
-
-  if (!callerId && "getRecentUserIdAsync" in persistence) {
-    callerId = await (persistence as { getRecentUserIdAsync: () => Promise<string | null> }).getRecentUserIdAsync();
-  }
+  const callerId = await getSessionAsync(token);
 
   if (!callerId) {
     return { ok: false, error: "You must be signed in to add an expense." };
@@ -89,11 +84,7 @@ export async function settleAction(input: SettleInput): Promise<ActionResult> {
 
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  let callerId = await getSessionAsync(token);
-
-  if (!callerId && "getRecentUserIdAsync" in persistence) {
-    callerId = await (persistence as { getRecentUserIdAsync: () => Promise<string | null> }).getRecentUserIdAsync();
-  }
+  const callerId = await getSessionAsync(token);
 
   if (!callerId) {
     return { ok: false, error: "You must be signed in to record a settlement." };
