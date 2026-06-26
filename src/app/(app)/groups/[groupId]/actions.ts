@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { SESSION_COOKIE_NAME, getSession } from "../../../../lib/auth";
+import { SESSION_COOKIE_NAME, getSessionAsync } from "../../../../lib/auth";
 import { getPersistence } from "../../../../lib/persistence-factory";
 import { addExpense } from "../../../../ledger/orchestration";
 import { recordSettlement } from "../../../../ledger/orchestration";
@@ -31,7 +31,7 @@ export async function addExpenseAction(input: AddExpenseInput): Promise<ActionRe
   // Get caller from session, fallback to recent user
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  let callerId = getSession(token);
+  let callerId = await getSessionAsync(token);
 
   if (!callerId && "getRecentUserIdAsync" in persistence) {
     callerId = await (persistence as { getRecentUserIdAsync: () => Promise<string | null> }).getRecentUserIdAsync();
@@ -89,7 +89,7 @@ export async function settleAction(input: SettleInput): Promise<ActionResult> {
 
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  let callerId = getSession(token);
+  let callerId = await getSessionAsync(token);
 
   if (!callerId && "getRecentUserIdAsync" in persistence) {
     callerId = await (persistence as { getRecentUserIdAsync: () => Promise<string | null> }).getRecentUserIdAsync();

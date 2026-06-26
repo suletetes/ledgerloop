@@ -3,7 +3,7 @@ import { CreateGroupForm } from "./create-group-form";
 import { isValidCurrency } from "../../../../domain/money";
 import { getPersistence } from "../../../../lib/persistence-factory";
 import { createGroup } from "../../../../ledger/services";
-import { SESSION_COOKIE_NAME, getSession } from "../../../../lib/auth";
+import { SESSION_COOKIE_NAME, getSessionAsync } from "../../../../lib/auth";
 
 /**
  * Create group page (Req 3.5).
@@ -48,7 +48,7 @@ async function createGroupAction(
   // Get the current user from session
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  let userId = getSession(token);
+  let userId = await getSessionAsync(token);
 
   // On Vercel serverless, in-memory sessions may not survive across instances.
   // Fallback: query the DB for the most recent user (hackathon demo only).

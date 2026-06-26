@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { SESSION_COOKIE_NAME, getSession } from "../../../../lib/auth";
+import { SESSION_COOKIE_NAME, getSessionAsync } from "../../../../lib/auth";
 import { getPersistence } from "../../../../lib/persistence-factory";
 import { deriveNetPositions } from "../../../../domain/balance-engine";
 import { simplifyDebts } from "../../../../domain/debt-simplifier";
@@ -22,7 +22,7 @@ export default async function GroupViewPage({ params }: GroupViewProps) {
 
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  let currentUserId = getSession(token);
+  let currentUserId = await getSessionAsync(token);
 
   // Fallback for serverless session loss: use most recent user from DB
   const persistence = getPersistence();

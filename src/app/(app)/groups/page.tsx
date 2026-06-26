@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { SESSION_COOKIE_NAME, getSession } from "../../../lib/auth";
+import { SESSION_COOKIE_NAME, getSessionAsync } from "../../../lib/auth";
 import { getPersistence } from "../../../lib/persistence-factory";
 
 /**
@@ -24,7 +24,7 @@ async function getGroups(userId: string): Promise<GroupSummary[]> {
 export default async function GroupsPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  let userId = getSession(token);
+  let userId = await getSessionAsync(token);
 
   // Fallback for serverless session loss: use the most recent user from DB
   const persistence = getPersistence();
