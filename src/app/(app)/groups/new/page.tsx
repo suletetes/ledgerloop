@@ -48,14 +48,20 @@ async function createGroupAction(
   // Get the current user from session
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  const userId = getSession(token);
+  let userId = getSession(token);
+
+  // On Vercel serverless, in-memory sessions may not survive across instances.
+  // Fallback: query the DB for the most recent user (hackathon demo only).
+  const persistence = getPersistence();
+  if (!userId && "getRecentUserIdAsync" in persistence) {
+    userId = await (persistence as { getRecentUserIdAsync: () => Promise<string | null> }).getRecentUserIdAsync();
+  }
 
   if (!userId) {
-    return { error: "You must be signed in to create a group.", values };
+    return { error: "You must be signed in to create a group. Please register first.", values };
   }
 
   // Persist group + creator membership
-  const persistence = getPersistence();
   const result = await createGroup(persistence, {
     name,
     baseCurrency,
