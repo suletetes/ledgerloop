@@ -53,6 +53,30 @@ Vercel — Next.js App Router
 
 Balance is an output, not stored state. Deriving it from an immutable ledger on every read means there's nothing to get out of sync. Writes only append rows, so conflicts are rare. Single database means no cross-service coordination to get wrong.
 
+### addExpense write path
+
+![addExpense write path](docs/ledgerloop_request_flow.png)
+
+### Registration flow
+
+![Registration flow](docs/ledgerloop_register_flow.png)
+
+### Sign-in and session lookup
+
+![Sign-in and session flow](docs/ledgerloop_signin_flow.png)
+
+### Database schema — groups and membership
+
+![Groups and membership schema](docs/ledgerloop_schema_groups.png)
+
+### Database schema — expense ledger (append-only)
+
+![Expense ledger schema](docs/ledgerloop_schema_ledger.png)
+
+### Database schema — auth tables
+
+![Auth schema](docs/ledgerloop_auth_schema.png)
+
 ---
 
 ## Tech stack
