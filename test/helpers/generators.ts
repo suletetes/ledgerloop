@@ -15,6 +15,7 @@
  * tasks, so these are intentionally typed against plain shapes.
  */
 import fc from "fast-check";
+import { isValidCurrency } from "@/domain/money";
 
 // ---------------------------------------------------------------------------
 // Currency codes (ISO-4217 vs non-ISO)
@@ -46,10 +47,12 @@ export function iso4217Code(): fc.Arbitrary<Iso4217Code> {
 /**
  * Codes that are NOT valid ISO-4217 currency codes. Covers the shapes a
  * validator must reject: wrong length, lowercase, digits, padded/whitespace,
- * empty, and plausible-but-unassigned three-letter strings (e.g. "ZZZ").
+ * empty, and plausible-but-unassigned three-letter strings.
+ *
+ * The filter uses `isValidCurrency` (the full CURRENCY_MINOR_DIGITS table)
+ * so any code the app accepts is never labelled as invalid here.
  */
 export function nonIso4217Code(): fc.Arbitrary<string> {
-  const known = new Set<string>(ISO_4217_CODES);
   return fc.oneof(
     // Wrong length (0, 1, 2, or 4+ letters).
     fc
@@ -61,7 +64,7 @@ export function nonIso4217Code(): fc.Arbitrary<string> {
       .filter((s) => !/^[A-Z]{3}$/.test(s)),
     // Lowercased version of a real code (case matters for ISO-4217).
     iso4217Code().map((c) => c.toLowerCase()),
-    // Three uppercase letters that are not in the known set (e.g. "ZZZ").
+    // Three uppercase letters that are NOT accepted by isValidCurrency.
     fc
       .tuple(
         fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")),
@@ -69,7 +72,7 @@ export function nonIso4217Code(): fc.Arbitrary<string> {
         fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")),
       )
       .map(([a, b, c]) => `${a}${b}${c}`)
-      .filter((s) => !known.has(s)),
+      .filter((s) => !isValidCurrency(s)),
   );
 }
 
