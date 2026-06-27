@@ -1,295 +1,260 @@
 # LedgerLoop
 
-**Multi-region group expense ledger where shared balances stay correct even when group members in different regions edit simultaneously.**
+Group expense ledger. Shared balances stay correct even when people in different cities write at the same time.
 
-Built for the H0 Hackathon ("Hack the Zero Stack")  AWS + Vercel | Deadline: June 30, 2026.
+Built for the H0 Hackathon — AWS + Vercel. Deadline: June 30, 2026.
 
-> "We didn't pick Aurora DSQL because it's new  we picked it because a group ledger has a correctness invariant that eventual consistency physically cannot hold, and DSQL aborts the conflicting write instead of silently corrupting the balance."
+Live: [ledgerloop-delta.vercel.app](https://ledgerloop-delta.vercel.app)
+
+> "We didn't pick Aurora PostgreSQL because it's fashionable. We picked it because a group ledger has a math invariant — balances across a closed group must sum to zero — and serializable isolation makes violating that invariant impossible to ignore. The database aborts the conflicting write and forces a retry. No silent corruption."
 
 ---
 
 ## What it does
 
-LedgerLoop tracks and simplifies shared expenses across groups of people in different countries. Three friends across three continents split a trip  two add an expense at the same second  and the balance never silently breaks.
+LedgerLoop tracks shared expenses, figures out who owes what, and lets members settle up. Three friends across three continents add an expense at the same second — both writes land correctly, balances stay exact.
 
-**Core features:**
-- **Expense splitting**  equal, percentage, or exact amounts with deterministic rounding (₦1,000 ÷ 3 = 334 + 333 + 333, never 999)
-- **Debt simplification**  reduces N tangled debts to the minimum number of payments (greedy min-cashflow algorithm)
-- **Settlement recording**  mark payments with a cap that prevents over-settling
-- **Multi-currency display**  store in original currency, convert at read time to each member's preference
-- **Concurrency correctness**  simultaneous edits from different regions never corrupt balances (DSQL OCC + retry)
+What's in scope: expense splitting (equal, percentage, or exact amounts), debt simplification, settlement recording, and concurrency safety. Remainders are distributed deterministically — ₦1,000 ÷ 3 is 334 + 333 + 333, never 999.
 
-**What it does NOT do (MVP scope):** move real money. It tracks and simplifies debt only.
+What's not: moving real money. This tracks and simplifies debt only.
 
 ---
 
 ## Architecture
 
-A layered serverless monolith: one Next.js deploy artifact on Vercel, one Aurora DSQL database.
+One Next.js deployment on Vercel, one Aurora PostgreSQL database.
 
-![LedgerLoop Architecture Diagram](docs/ledgerloop_architecture.png)
+![LedgerLoop architecture](docs/ledgerloop_architecture.png)
 
 ```
 Browser (Lagos / London / Toronto)
     │
     ▼
-Vercel  Next.js App Router
-    ├── Server Components (initial render)
-    ├── Client Components (live balances, forms)
-    └── Route Handlers / Server Actions (API boundary)
+Vercel — Next.js App Router
+    ├── Server Components (initial render, data fetch)
+    ├── Client Components (live balance display, forms)
+    └── Server Actions (all write operations)
             │
             ▼
-        Ledger Service (domain core  all writes + derivation)
-            ├── Auth_Guard (membership enforcement)
-            ├── Split_Calculator (INV-1: shares sum to amount)
-            ├── Balance_Engine (INV-2: group balances sum to zero)
-            ├── Debt_Simplifier (greedy min-cashflow)
-            ├── Settlement_Validator (INV-5: cap at what's owed)
-            ├── Currency_Display (read-time FX conversion)
-            └── withOccRetry (INV-3: no double-counting)
+        Ledger Service
+            ├── Auth Guard          membership check before every read/write
+            ├── Split Calculator    INV-1: shares always sum to expense amount
+            ├── Balance Engine      INV-2: group balances always sum to zero
+            ├── Debt Simplifier     greedy min-cashflow reduction
+            ├── Settlement Validator INV-5: settlement ≤ what's owed
+            └── withOccRetry        INV-3: transparent retry on 40001
                     │
                     ▼
-            Aurora DSQL (single logical DB)
+            Aurora PostgreSQL
                 Append-only ledger: expenses, splits, settlements
                 Reference state: users, groups, memberships
-                Snapshot isolation + OCC (SQLSTATE 40001)
+                Serializable isolation (SQLSTATE 40001 on conflict)
 ```
 
-**Why this architecture:**
-- Balance is an OUTPUT, not state  derived from the immutable ledger on every read
-- Writes only append rows, so conflicts collide on inserts where DSQL's OCC protects you
-- Single database = no cross-service saga to get wrong
-- The browser never touches persistence directly (Req 19.6)
+Balance is an output, not stored state. Deriving it from an immutable ledger on every read means there's nothing to get out of sync. Writes only append rows, so conflicts are rare. Single database means no cross-service coordination to get wrong.
 
 ---
 
-## Tech Stack
+## Tech stack
 
-| Concern | Choice |
-|---------|--------|
+| Layer | Choice |
+|---|---|
 | Framework | Next.js 15 (App Router) |
-| Language | TypeScript (strict mode, type-check enforced in build) |
+| Language | TypeScript strict mode, enforced in CI |
 | Styling | Tailwind CSS with shared design tokens |
-| Components | Radix UI accessible headless primitives |
-| Database | Aurora DSQL (single region, free tier) |
-| DB Driver | `postgres` (porsager) over DSQL psql wire |
-| Auth | Session-based (HTTP-only cookie, HMAC-SHA256 hashing) |
-| Connection | IAM token auth via `@aws-sdk/dsql-signer`, sslmode=require |
+| Components | Radix UI headless primitives |
+| Database | Aurora PostgreSQL Serverless v2 |
+| DB driver | `postgres` (porsager) |
+| Auth | Session cookie, PBKDF2-HMAC-SHA256 hashing |
 | Hosting | Vercel |
-| Testing | Vitest + fast-check (property-based, 100+ iterations) + axe-core |
-| Performance | Lighthouse CI gates (LCP ≤ 2.5s, CLS ≤ 0.1) |
+| Testing | Vitest + fast-check + axe-core |
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
 src/
-├── app/                    Next.js App Router
-│   ├── (auth)/             Registration + sign-in (unauthenticated)
-│   ├── (app)/              Session-guarded app segment
-│   │   └── groups/         Group list, create, view, add-expense, settle
-│   ├── layout.tsx          Root layout (ARIA landmarks, skip-to-content)
-│   └── globals.css         Tailwind base styles
+├── app/
+│   ├── (auth)/              Register + sign-in
+│   ├── (app)/               Session-guarded segment
+│   │   └── groups/          List, create, join, view, add expense, settle
+│   ├── layout.tsx           Root layout (ARIA landmarks, skip-to-content)
+│   └── globals.css
 ├── components/
-│   ├── ui/                 MoneyAmount, MoneyInput, SubmitButton, Label
-│   ├── expense/            AddExpenseFlow (live split preview)
-│   ├── balance/            BalanceSummary, SimplifiedPlan
-│   └── settle/             SettleUpForm
-├── design/
-│   └── tokens.ts           Color, typography, spacing (single source of truth)
-├── domain/                 Pure domain core (no I/O, property-tested)
-│   ├── types.ts            SplitType, Split, ExpenseInput, Transfer, Result<T>
-│   ├── result.ts           DomainError model + ok/err helpers
-│   ├── money.ts            ISO-4217 validation, parseMajorToMinor, formatMinor
-│   ├── split-calculator.ts equalSplit, percentSplit, exactSplit (INV-1)
-│   ├── balance-engine.ts   deriveNetPositions, derivePairwiseDebts (INV-2)
-│   ├── debt-simplifier.ts  simplifyDebts (greedy min-cashflow)
-│   ├── settlement-validator.ts  maxSettleable, validate (INV-5)
-│   └── currency-display.ts convert (read-time FX, never mutates stored data)
-├── ledger/                 Orchestration + persistence
-│   ├── persistence.ts      Persistence interface + row types
-│   ├── in-memory-persistence.ts  In-memory fake (for tests + local dev)
-│   ├── occ-retry.ts        withOccRetry (bounded, jittered backoff)
-│   ├── auth-guard.ts       Membership enforcement (INV-6)
-│   ├── services.ts         registerMember, createGroup, joinGroup
-│   ├── orchestration.ts    addExpense, recordSettlement, correctExpense
-│   └── dsql/               Real Aurora DSQL implementation
-│       ├── schema.sql      DSQL-safe DDL (CREATE INDEX ASYNC, no FK)
-│       ├── connection.ts   IAM token auth, sslmode=require, pooling
-│       └── dsql-persistence.ts  Full Persistence implementation
-└── lib/                    API boundary utilities
-    ├── auth.ts             Session management (HTTP-only cookie)
-    ├── auth-store.ts       Credential store (separate from users table)
-    ├── route-guard.ts      Unauthenticated request blocking
-    ├── group-route-handler.ts  Session + Auth_Guard wiring
-    ├── api-response.ts     DomainError → HTTP status mapping
-    └── logger.ts           PII-free logging (strips email addresses)
+│   ├── ui/                  MoneyAmount, MoneyInput, SubmitButton, Label
+│   ├── expense/             AddExpenseFlow (live split preview)
+│   ├── balance/             BalanceSummary, SimplifiedPlan
+│   └── settle/              SettleUpForm
+├── domain/                  Pure domain core — no I/O, property-tested
+│   ├── types.ts             SplitType, Split, ExpenseInput, Transfer
+│   ├── result.ts            Result<T>, DomainError, ok/err helpers
+│   ├── money.ts             ISO-4217 validation, parseMajorToMinor, formatMinor
+│   ├── split-calculator.ts  equalSplit, percentSplit, exactSplit
+│   ├── balance-engine.ts    deriveNetPositions, derivePairwiseDebts
+│   ├── debt-simplifier.ts   simplifyDebts
+│   ├── settlement-validator.ts  maxSettleable, validate
+│   └── currency-display.ts  read-time FX conversion, never mutates stored data
+├── ledger/
+│   ├── persistence.ts       Persistence interface + row types
+│   ├── in-memory-persistence.ts  Fake for tests and local dev
+│   ├── occ-retry.ts         withOccRetry (bounded, jittered backoff)
+│   ├── auth-guard.ts        Membership enforcement
+│   ├── services.ts          registerMember, createGroup, joinGroup
+│   ├── orchestration.ts     addExpense, recordSettlement, correctExpense
+│   └── aurora/              Real Aurora PostgreSQL adapter
+│       ├── schema.sql       Standard PG DDL: foreign keys, indexes, SERIALIZABLE
+│       ├── connection.ts    Pooled connection
+│       └── aurora-persistence.ts
+└── lib/
+    ├── auth.ts              Session management (HTTP-only cookie)
+    ├── auth-store.ts        Credential store
+    ├── persistence-factory.ts  AURORA_HOST → AuroraPersistence, else InMemory
+    └── logger.ts            PII-free logging
 
 test/
-├── helpers/                Property-test helper (≥100 iterations) + generators
-├── domain/                 12 property tests (INV-1, INV-2, INV-4, INV-5, ...)
-├── ledger/                 OCC retry, auth-guard, services, orchestration tests
-├── api/                    PII exclusion + auth lifecycle tests
-└── frontend/              Accessibility (axe-core), contrast, responsive, touch
+├── domain/          12 property tests (INV-1 through INV-5)
+├── ledger/          OCC retry, auth guard, services, orchestration
+├── api/             PII exclusion, auth lifecycle
+└── frontend/        axe-core accessibility, contrast, responsive, touch
 ```
 
 ---
 
-## Correctness Invariants
+## Correctness invariants
 
-The system enforces six invariants  each property-tested to 100+ iterations:
+Six invariants, each thrown at 100+ random inputs by fast-check:
 
 | # | Invariant | Enforced by |
-|---|-----------|-------------|
-| INV-1 | Σ(splits) == expense amount | Split_Calculator + atomic transaction |
-| INV-2 | Σ(balances) across a group == 0 | Balance_Engine derivation |
-| INV-3 | No double-counting under concurrency | DSQL OCC (40001) + withOccRetry |
-| INV-4 | Money is always integer minor units | BIGINT storage + no-float discipline |
-| INV-5 | Settlement ≤ what's owed | Settlement_Validator against derived ledger |
-| INV-6 | Every row references real entities | Auth_Guard + app-layer referential checks |
+|---|---|---|
+| INV-1 | `Σ(splits) == expense amount` | Split Calculator + atomic transaction |
+| INV-2 | `Σ(balances) == 0` across a group | Balance Engine derivation |
+| INV-3 | No double-counting under concurrency | Aurora SERIALIZABLE + withOccRetry |
+| INV-4 | Money is always integer minor units | BIGINT storage, no floats |
+| INV-5 | Settlement ≤ what's owed | Settlement Validator against derived ledger |
+| INV-6 | Every row references a real entity | Auth Guard + DB foreign keys |
 
-**27 correctness properties** are tested with fast-check (property-based testing), each running a minimum of 100 iterations. The settlement direction property explicitly catches a flipped sign that a sum-to-zero check alone cannot detect.
+27 correctness properties total. The settlement direction property catches a flipped sign that a sum-to-zero check alone misses — that one nearly got me.
 
 ---
 
-## Getting Started
+## Getting started
 
-### Prerequisites
-
-- Node.js ≥ 18.18.0
-- npm
-
-### Local Development (no database needed)
+### Local development (no database needed)
 
 ```bash
-# Install dependencies
 npm install
-
-# Run tests (138 tests, 24 files  all pass without a database)
-npm test
-
-# Type-check
+npm test        # 138 tests, all pass against the in-memory fake
 npm run typecheck
-
-# Start dev server (uses in-memory persistence)
-npm run dev
+npm run dev     # localhost:3000
 ```
 
-The app runs fully locally against the `InMemoryPersistence` fake. No AWS account or DSQL cluster is needed for development or testing.
+No AWS account required. `InMemoryPersistence` handles everything locally.
 
-### With Aurora DSQL (production)
+### With Aurora PostgreSQL
 
 ```bash
-# Set environment variables
-export DSQL_HOST=<cluster-id>.dsql.<region>.on.aws
-export DSQL_REGION=us-east-1
-
-# Run the schema migration (requires psql v14+ for SNI)
-TOKEN=$(aws dsql generate-db-connect-admin-auth-token \
-  --hostname $DSQL_HOST --region $DSQL_REGION)
-
-psql "host=$DSQL_HOST port=5432 dbname=postgres user=admin \
-  password=$TOKEN sslmode=require" -f src/ledger/dsql/schema.sql
-
-# Start with real persistence
-npm run dev
+AURORA_HOST=your-cluster-endpoint.cluster-xxxx.us-east-1.rds.amazonaws.com
+AURORA_PORT=5432
+AURORA_DB=ledgerloop
+AURORA_USER=ledgerloop_admin
+AURORA_PASSWORD=your-password
 ```
+
+Run the schema once:
+
+```bash
+psql "host=$AURORA_HOST port=$AURORA_PORT dbname=$AURORA_DB \
+  user=$AURORA_USER password=$AURORA_PASSWORD sslmode=require" \
+  -f src/ledger/aurora/schema.sql
+```
+
+Then `npm run dev`. The persistence factory switches automatically when `AURORA_HOST` is set.
 
 ---
 
 ## Deployment
 
-### Strategy: Git push → Vercel auto-deploys → DSQL via Marketplace
+1. Provision Aurora PostgreSQL Serverless v2 in AWS.
+2. Add the five `AURORA_*` env vars to your Vercel project.
+3. Run the schema SQL against the cluster once.
+4. Push to GitHub — Vercel deploys automatically.
 
-1. **Provision DSQL**  Use the [Vercel Marketplace → AWS DSQL](https://vercel.com/marketplace/aws/aws-dsql) integration. It provisions a cluster and auto-injects `DSQL_HOST`/`DSQL_REGION` via OIDC (no static secrets).
+Or: `npx vercel --prod`.
 
-2. **Run the DDL**  Connect with psql v14+ and run `src/ledger/dsql/schema.sql`.
+### Environment variables
 
-3. **Deploy**  Push to GitHub. Vercel auto-builds and deploys. Or: `npx vercel --prod`.
+| Variable | Required | Notes |
+|---|---|---|
+| `AURORA_HOST` | Production | Aurora writer endpoint |
+| `AURORA_PORT` | No | Default `5432` |
+| `AURORA_DB` | No | Default `ledgerloop` |
+| `AURORA_USER` | No | Default `ledgerloop_admin` |
+| `AURORA_PASSWORD` | Production | DB password |
 
-4. **Verify**  Register, create a group, add an expense, check balances sum to zero. Fire two simultaneous writes to capture the 40001 → retry in logs.
-
-### Environment Variables
-
-| Variable | Description | Source |
-|----------|-------------|--------|
-| `DSQL_HOST` | DSQL cluster endpoint | Vercel Marketplace (auto) or manual |
-| `DSQL_REGION` | AWS region | Vercel Marketplace (auto) or manual |
-
-No other secrets needed  IAM tokens are generated at runtime via `@aws-sdk/dsql-signer`.
-
-### Cost
-
-$0/month on the hackathon. DSQL free tier: 100K DPU + 1 GiB storage. Vercel hobby/pro covered by hackathon credits.
+When `AURORA_HOST` is unset the app falls back to `InMemoryPersistence`. All 138 tests pass with no database at all.
 
 ---
 
 ## Testing
 
 ```bash
-# Run all tests (property-based + unit + accessibility + responsive)
-npm test
-
-# Watch mode
-npm run test:watch
-
-# Lighthouse CI (requires a built/deployed app)
-npm run lighthouse
+npm test              # everything
+npm run test:watch    # watch mode
+npm run lighthouse    # performance gates (requires deployed build)
 ```
 
-**Test coverage:**
-- 24 test files, 138 tests
-- 27 property-based tests (fast-check, ≥100 iterations each)
+24 test files, 138 tests. What they cover:
+
+- 27 property-based tests via fast-check, ≥100 iterations each
 - 12 axe-core accessibility checks (zero violations)
-- 18 contrast/keyboard/label/error-association tests
-- 13 responsive/touch structural tests
-- Lighthouse CI gates configured (LCP, CLS, performance score)
+- 18 contrast, keyboard, label, and error-association checks
+- 13 responsive and touch structure tests
+- Lighthouse CI gates: LCP ≤ 2.5s, CLS ≤ 0.1
+
+The OCC retry path is tested by injecting `40001` failures on demand into the in-memory fake. No live database required for any of it.
 
 ---
 
 ## Accessibility
 
-- WCAG 2.1 AA compliance across all core flows
-- Every form control has a programmatically associated label
-- Errors conveyed through text (aria-describedby), not color alone
-- Creditor/debtor status uses text labels + icons, never color alone
-- Skip-to-content link, ARIA landmarks (banner, navigation, main, contentinfo)
-- Touch targets ≥ 44×44px, no hover-only interactions
-- Live balance updates announced via aria-live="polite" region
-- Contrast ratios verified against design tokens (4.5:1 / 3:1 minimums)
+WCAG 2.1 AA across all core flows. Every form control has an associated `<label>`. Errors go through `aria-describedby`, not color alone. Balance status uses text labels and icons. Skip-to-content link present. Touch targets are 44×44px minimum. Live balance updates use `aria-live="polite"`. Contrast ratios verified against design tokens at 4.5:1 and 3:1.
 
 ---
 
-## Key Design Decisions
+## Design decisions worth explaining
 
-1. **Balance is derived, never stored**  prevents the classic lost-update bug under concurrency
-2. **Append-only ledger**  expenses and settlements are immutable inserts; corrections are reversals
-3. **Integer minor units everywhere**  no floating point, not even for zero (BIGINT in DB, `number`/`bigint` in TS)
-4. **Validation precedes side effects**  a rejected operation never partially writes
-5. **OCC is invisible on success**  retries happen transparently; only exhaustion surfaces as an error
-6. **Single database**  INV-3 is a database guarantee (OCC), not application coordination
-7. **Pure domain core tested independently**  invariants are proven before any database exists
+**Balance is derived, never stored.** The classic lost-update bug happens when you store a running total and two writes race to update it. We don't store it at all — every read derives it from the immutable ledger. Nothing to corrupt.
+
+**Append-only ledger.** Expenses and settlements are inserts only. Corrections are new reversing rows, not edits. This keeps the conflict surface narrow: two inserts with different UUIDs rarely collide.
+
+**Integer minor units everywhere.** IEEE 754 cannot represent 0.1 exactly. ₦10.50 stored as a float might come back as 10.4999...97. So everything is stored as kobo, cents, pence — integers. `BIGINT` in the database, `number` in TypeScript (safe up to ±2⁵³ − 1). Formatting only happens at the display layer.
+
+**Validation before any write.** A rejected operation writes nothing. No partial state.
+
+**Single database.** Concurrency correctness is Aurora's job, not the application's. Cross-service sagas trade one hard problem for three.
 
 ---
 
-## Scripts Reference
+## Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start Next.js dev server |
-| `npm run build` | Production build (typecheck + lint enforced) |
+| Script | What it does |
+|---|---|
+| `npm run dev` | Next.js dev server |
+| `npm run build` | Production build (typecheck + lint run) |
 | `npm run start` | Serve the production build |
 | `npm run lint` | ESLint |
-| `npm run typecheck` | TypeScript strict type-check |
-| `npm test` | Run all tests (Vitest) |
+| `npm run typecheck` | TypeScript strict check |
+| `npm test` | All tests |
 | `npm run test:watch` | Watch mode |
-| `npm run lighthouse` | Lighthouse CI performance gates |
+| `npm run lighthouse` | Lighthouse CI gates |
 
 ---
 
-## Hackathon Submission
+## Hackathon
 
-- **Track:** AWS Aurora DSQL
-- **Pitch:** A group ledger has a correctness invariant (balances sum to zero, no double-counting) that eventual consistency physically cannot hold. DSQL's snapshot isolation + OCC makes the conflict impossible to ignore  it surfaces as a retryable error rather than silent corruption.
-- **Demo:** Two simultaneous writes → one gets 40001 → retry succeeds → both land → INV-2 holds. "12 debts → 4 payments" in the UI.
+Track: AWS + Vercel (H0 Hackathon).
+
+The pitch: a group ledger has a correctness invariant that eventual consistency can't hold. Aurora PostgreSQL's serializable isolation surfaces conflicts as retryable errors instead of silent wrong balances. The architecture follows directly from that guarantee.
+
+The demo: two simultaneous writes, one gets `40001`, retry succeeds, both land, INV-2 holds. Then 12 debts collapse to 4 payments in the UI.
