@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { formatMinor } from "../../domain/money";
+import { formatMinor, isValidCurrency } from "../../domain/money";
 import {
   convert,
   type FxRateCache,
@@ -38,6 +38,8 @@ export interface MoneyAmountProps {
  * - When no FX rate exists, shows original currency/amount and indicates
  *   conversion is unavailable (Req 14.4, 10.8)
  * - Uses semantic HTML with aria-label for screen readers (Req 17)
+ * - Renders nothing when the currency code is not yet valid (e.g. mid-edit)
+ *   to prevent formatMinor from throwing during intermediate input states.
  */
 export function MoneyAmount({
   amountMinor,
@@ -46,6 +48,13 @@ export function MoneyAmount({
   fxRates,
   className,
 }: MoneyAmountProps) {
+  // Guard: formatMinor throws a RangeError on unknown currency codes.
+  // During currency field editing the code passes through intermediate states
+  // like "N" or "NG" — render nothing rather than crash the page.
+  if (!isValidCurrency(currency)) {
+    return null;
+  }
+
   const formattedOriginal = formatMinor(amountMinor, currency);
 
   // If no viewer currency or same currency, just show the original.

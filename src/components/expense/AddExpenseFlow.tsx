@@ -254,7 +254,18 @@ export function AddExpenseFlow({
           name="currency"
           type="text"
           value={form.currency}
-          onChange={(e) => setForm((prev) => ({ ...prev, currency: e.target.value.toUpperCase() }))}
+          onChange={(e) => {
+            const newCurrency = e.target.value.toUpperCase();
+            setForm((prev) => ({
+              ...prev,
+              currency: newCurrency,
+              // Reset the parsed minor amount when currency changes — the digit
+              // count may differ (e.g. JPY has 0 decimal places vs USD's 2),
+              // so the old minor value is meaningless for the new currency.
+              amountMinor: null,
+              amountDisplay: "",
+            }));
+          }}
           maxLength={3}
           aria-describedby={fieldErrors.currency ? "currency-error" : undefined}
           aria-invalid={fieldErrors.currency ? "true" : undefined}
@@ -400,7 +411,7 @@ export function AddExpenseFlow({
       )}
 
       {/* Split Preview (Req 15.2, 15.3, 15.4) */}
-      {form.amountMinor && form.participants.length > 0 && (
+      {form.amountMinor && form.participants.length > 0 && isValidCurrency(form.currency) && (
         <div
           className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 space-y-2"
           aria-label="Split preview"

@@ -61,6 +61,22 @@ export function MoneyInput({
     }
   }, [controlledValue]);
 
+  // When the currency prop changes, re-parse the current display value
+  // against the new currency so the minor-unit state stays correct.
+  // This also clears the minor value if the new currency is invalid.
+  React.useEffect(() => {
+    if (displayValue.trim() === "") return;
+    const result = parseMajorToMinor(displayValue, currency);
+    if (result.ok) {
+      setError(null);
+      onChange(result.value);
+    } else {
+      setError(null); // don't show an error mid-currency-change
+      onChange(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currency]);
+
   const handleChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;

@@ -28,7 +28,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className="min-h-screen bg-neutral-50 font-sans text-neutral-900 antialiased">
+      <body className="flex min-h-screen flex-col bg-neutral-50 font-sans text-neutral-900 antialiased">
         {/* Skip-to-content link (Req 17.7) */}
         <a
           href="#main-content"
@@ -96,7 +96,7 @@ export default async function RootLayout({
         </header>
 
         {/* Main content landmark */}
-        <main id="main-content" role="main" className="mx-auto max-w-5xl px-4 py-6">
+        <main id="main-content" role="main" className="flex-grow mx-auto w-full max-w-5xl px-4 py-6">
           {children}
         </main>
 
