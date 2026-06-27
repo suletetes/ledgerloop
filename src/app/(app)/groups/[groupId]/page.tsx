@@ -8,7 +8,8 @@ import { simplifyDebts } from "../../../../domain/debt-simplifier";
 import { formatMinor } from "../../../../domain/money";
 import { AddExpenseFlow } from "../../../../components/expense/AddExpenseFlow";
 import { SettleUpForm } from "../../../../components/settle/SettleUpForm";
-import { addExpenseAction } from "./actions";
+import { addExpenseAction, settleAction } from "./actions";
+import { CopyGroupId } from "./copy-group-id";
 /**
  * Group view page  shows real balances, simplified debts, and actions.
  */
@@ -130,7 +131,48 @@ export default async function GroupViewPage({ params }: GroupViewProps) {
         </section>
       )}
 
-      {/* Actions */}
+      {/* Members section */}
+      <section className="mt-8" aria-labelledby="members-heading">
+        <div className="flex items-center justify-between">
+          <h2 id="members-heading" className="text-lg font-semibold text-neutral-900">
+            Members
+          </h2>
+        </div>
+        <ul className="mt-3 space-y-2" role="list">
+          {members.map((m) => (
+            <li
+              key={m.userId}
+              className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+                {m.displayName.charAt(0).toUpperCase()}
+              </span>
+              <span className="font-medium text-neutral-900">
+                {m.displayName}
+                {m.userId === currentUserId && (
+                  <span className="ml-1.5 text-xs text-neutral-400">(you)</span>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        {/* Invite card — share group ID */}
+        <div className="mt-4 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 space-y-2">
+          <p className="text-sm font-medium text-neutral-700">Invite someone to this group</p>
+          <p className="text-xs text-neutral-500">
+            Share this group ID. They paste it at{" "}
+            <span className="font-mono text-neutral-600">/groups/join</span>.
+          </p>
+          <CopyGroupId groupId={groupId} />
+          <Link
+            href="/groups/join"
+            className="inline-flex min-h-touch items-center justify-center rounded-md border border-brand-300 bg-white px-3 py-1.5 text-sm font-medium text-brand-600 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+          >
+            Join a different group →
+          </Link>
+        </div>
+      </section>
       <section className="mt-8 space-y-4">
         <h2 className="text-lg font-semibold text-neutral-900">Actions</h2>
         <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
@@ -150,6 +192,7 @@ export default async function GroupViewPage({ params }: GroupViewProps) {
               members={members.map((m) => ({ id: m.userId, displayName: m.displayName }))}
               currentUserId={currentUserId}
               currency={baseCurrency}
+              settleAction={settleAction}
             />
           </div>
         )}
