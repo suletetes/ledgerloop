@@ -2,19 +2,18 @@
 
 Group expense ledger. Shared balances stay correct even when people in different cities write at the same time.
 
-Built for the H0 Hackathon — AWS + Vercel. Deadline: June 30, 2026.
+Built for the H0 Hackathon  AWS + Vercel.
 
 Live: [ledgerloop-delta.vercel.app](https://ledgerloop-delta.vercel.app)
 
-> "We didn't pick Aurora PostgreSQL because it's fashionable. We picked it because a group ledger has a math invariant — balances across a closed group must sum to zero — and serializable isolation makes violating that invariant impossible to ignore. The database aborts the conflicting write and forces a retry. No silent corruption."
 
 ---
 
 ## What it does
 
-LedgerLoop tracks shared expenses, figures out who owes what, and lets members settle up. Three friends across three continents add an expense at the same second — both writes land correctly, balances stay exact.
+LedgerLoop tracks shared expenses, figures out who owes what, and lets members settle up. Three friends across three continents add an expense at the same second  both writes land correctly, balances stay exact.
 
-What's in scope: expense splitting (equal, percentage, or exact amounts), debt simplification, settlement recording, and concurrency safety. Remainders are distributed deterministically — ₦1,000 ÷ 3 is 334 + 333 + 333, never 999.
+What's in scope: expense splitting (equal, percentage, or exact amounts), debt simplification, settlement recording, and concurrency safety. Remainders are distributed deterministically  ₦1,000 ÷ 3 is 334 + 333 + 333, never 999.
 
 What's not: moving real money. This tracks and simplifies debt only.
 
@@ -30,7 +29,7 @@ One Next.js deployment on Vercel, one Aurora PostgreSQL database.
 Browser (Lagos / London / Toronto)
     │
     ▼
-Vercel — Next.js App Router
+Vercel  Next.js App Router
     ├── Server Components (initial render, data fetch)
     ├── Client Components (live balance display, forms)
     └── Server Actions (all write operations)
@@ -65,15 +64,15 @@ Balance is an output, not stored state. Deriving it from an immutable ledger on 
 
 ![Sign-in and session flow](docs/ledgerloop_signin_flow.png)
 
-### Database schema — groups and membership
+### Database schema  groups and membership
 
 ![Groups and membership schema](docs/ledgerloop_schema_groups.png)
 
-### Database schema — expense ledger (append-only)
+### Database schema  expense ledger (append-only)
 
 ![Expense ledger schema](docs/ledgerloop_schema_ledger.png)
 
-### Database schema — auth tables
+### Database schema  auth tables
 
 ![Auth schema](docs/ledgerloop_auth_schema.png)
 
@@ -110,7 +109,7 @@ src/
 │   ├── expense/             AddExpenseFlow (live split preview)
 │   ├── balance/             BalanceSummary, SimplifiedPlan
 │   └── settle/              SettleUpForm
-├── domain/                  Pure domain core — no I/O, property-tested
+├── domain/                  Pure domain core  no I/O, property-tested
 │   ├── types.ts             SplitType, Split, ExpenseInput, Transfer
 │   ├── result.ts            Result<T>, DomainError, ok/err helpers
 │   ├── money.ts             ISO-4217 validation, parseMajorToMinor, formatMinor
@@ -158,7 +157,7 @@ Six invariants, each thrown at 100+ random inputs by fast-check:
 | INV-5 | Settlement ≤ what's owed | Settlement Validator against derived ledger |
 | INV-6 | Every row references a real entity | Auth Guard + DB foreign keys |
 
-27 correctness properties total. The settlement direction property catches a flipped sign that a sum-to-zero check alone misses — that one nearly got me.
+27 correctness properties total. The settlement direction property catches a flipped sign that a sum-to-zero check alone misses  that one nearly got me.
 
 ---
 
@@ -202,7 +201,7 @@ Then `npm run dev`. The persistence factory switches automatically when `AURORA_
 1. Provision Aurora PostgreSQL Serverless v2 in AWS.
 2. Add the five `AURORA_*` env vars to your Vercel project.
 3. Run the schema SQL against the cluster once.
-4. Push to GitHub — Vercel deploys automatically.
+4. Push to GitHub  Vercel deploys automatically.
 
 Or: `npx vercel --prod`.
 
@@ -248,11 +247,11 @@ WCAG 2.1 AA across all core flows. Every form control has an associated `<label>
 
 ## Design decisions worth explaining
 
-**Balance is derived, never stored.** The classic lost-update bug happens when you store a running total and two writes race to update it. We don't store it at all — every read derives it from the immutable ledger. Nothing to corrupt.
+**Balance is derived, never stored.** The classic lost-update bug happens when you store a running total and two writes race to update it. We don't store it at all  every read derives it from the immutable ledger. Nothing to corrupt.
 
 **Append-only ledger.** Expenses and settlements are inserts only. Corrections are new reversing rows, not edits. This keeps the conflict surface narrow: two inserts with different UUIDs rarely collide.
 
-**Integer minor units everywhere.** IEEE 754 cannot represent 0.1 exactly. ₦10.50 stored as a float might come back as 10.4999...97. So everything is stored as kobo, cents, pence — integers. `BIGINT` in the database, `number` in TypeScript (safe up to ±2⁵³ − 1). Formatting only happens at the display layer.
+**Integer minor units everywhere.** IEEE 754 cannot represent 0.1 exactly. ₦10.50 stored as a float might come back as 10.4999...97. So everything is stored as kobo, cents, pence  integers. `BIGINT` in the database, `number` in TypeScript (safe up to ±2⁵³ − 1). Formatting only happens at the display layer.
 
 **Validation before any write.** A rejected operation writes nothing. No partial state.
 
