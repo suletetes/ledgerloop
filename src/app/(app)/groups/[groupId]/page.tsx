@@ -176,6 +176,7 @@ export default async function GroupViewPage({ params }: GroupViewProps) {
       <section className="mt-8 space-y-4">
         <h2 className="text-lg font-semibold text-neutral-900">Actions</h2>
         <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <h3 className="mb-4 text-base font-semibold text-neutral-900">Add expense</h3>
           <AddExpenseFlow
             groupId={groupId}
             members={members.map((m) => ({ id: m.userId, displayName: m.displayName }))}
@@ -187,6 +188,7 @@ export default async function GroupViewPage({ params }: GroupViewProps) {
 
         {transfers.length > 0 && (
           <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <h3 className="mb-4 text-base font-semibold text-neutral-900">Settle up</h3>
             <SettleUpForm
               groupId={groupId}
               members={members.map((m) => ({ id: m.userId, displayName: m.displayName }))}

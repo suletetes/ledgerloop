@@ -114,7 +114,7 @@ export default async function RootLayout({
                 <span>LedgerLoop</span>
               </div>
               <p className="text-xs text-neutral-400">
-                Built for the H0 Hackathon — Vercel + Aurora PostgreSQL
+                Built for the H0 Hackathon Vercel + Aurora PostgreSQL
               </p>
               <div className="flex gap-4 text-xs text-neutral-500">
                 <span>Next.js</span>

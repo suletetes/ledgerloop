@@ -40,20 +40,20 @@ export default async function GroupsPage() {
               : "Create or join a group to start"}
           </p>
         </div>
-      <div className="flex items-center gap-2">
-        <Link
-          href="/groups/join"
-          className="inline-flex min-h-touch min-w-touch items-center justify-center rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors"
-        >
-          Join group
-        </Link>
-        <Link
-          href="/groups/new"
-          className="inline-flex min-h-touch min-w-touch items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors"
-        >
-          + New group
-        </Link>
-      </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/groups/join"
+            className="inline-flex min-h-touch min-w-touch items-center justify-center rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors"
+          >
+            Join group
+          </Link>
+          <Link
+            href="/groups/new"
+            className="inline-flex min-h-touch min-w-touch items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors"
+          >
+            + New group
+          </Link>
+        </div>
       </div>
 
       {groups.length === 0 ? (

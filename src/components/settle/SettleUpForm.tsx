@@ -30,6 +30,14 @@ export interface SettleUpFormProps {
   defaultReceiver?: string;
   /** Pre-filled amount in minor units (from displayed debt). */
   defaultAmountMinor?: number;
+  /** Server action to record the settlement. */
+  settleAction?: (input: {
+    groupId: string;
+    fromUser: string;
+    toUser: string;
+    amountMinor: number;
+    currency: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
   /** Callback on successful settlement. */
   onSuccess?: () => void;
 }
@@ -42,13 +50,14 @@ interface SettlementConfirmation {
 }
 
 export function SettleUpForm({
-  groupId: _groupId,
+  groupId,
   members,
   currentUserId,
   currency,
   defaultPayer,
   defaultReceiver,
   defaultAmountMinor,
+  settleAction,
   onSuccess,
 }: SettleUpFormProps) {
   const [payer, setPayer] = React.useState(defaultPayer ?? currentUserId);
@@ -57,6 +66,7 @@ export function SettleUpForm({
   const [pending, setPending] = React.useState(false);
   const [unavailable, setUnavailable] = React.useState(false);
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
+  const [serverError, setServerError] = React.useState<string | null>(null);
   const [confirmation, setConfirmation] = React.useState<SettlementConfirmation | null>(null);
 
   const getMemberName = (id: string) =>
@@ -82,6 +92,8 @@ export function SettleUpForm({
           onClick={() => {
             setConfirmation(null);
             onSuccess?.();
+            // Reload page so balances reflect the new settlement
+            window.location.reload();
           }}
           className="inline-flex min-h-touch items-center justify-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors"
         >
@@ -98,6 +110,7 @@ export function SettleUpForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFieldErrors({});
+    setServerError(null);
 
     const errors: Record<string, string> = {};
 
@@ -123,8 +136,19 @@ export function SettleUpForm({
     setUnavailable(false);
 
     try {
-      // TODO: Wire to server action / API call for recordSettlement
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (settleAction) {
+        const result = await settleAction({
+          groupId,
+          fromUser: payer,
+          toUser: receiver,
+          amountMinor: amountMinor!,
+          currency,
+        });
+        if (!result.ok) {
+          setServerError(result.error ?? "Failed to record settlement.");
+          return;
+        }
+      }
 
       // Show confirmation (Req 16.4)
       setConfirmation({
@@ -142,6 +166,11 @@ export function SettleUpForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      {serverError && (
+        <div role="alert" className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">
+          {serverError}
+        </div>
+      )}
       {/* Payer (Req 16.3  pre-filled) */}
       <div className="space-y-1">
         <Label htmlFor="settle-payer">Who is paying?</Label>
