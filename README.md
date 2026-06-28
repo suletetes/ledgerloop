@@ -21,7 +21,7 @@ What's not: moving real money. This tracks and simplifies debt only.
 
 ## Architecture
 
-One Next.js deployment on Vercel, one Aurora PostgreSQL database.
+One Next.js deployment on Vercel, one Aurora PostgreSQL database. For a full breakdown of every design decision  why Aurora, the OCC retry model, the remainder fix, and what's not built yet see [LEDGERLOOP_ARCHITECTURE.md](LEDGERLOOP_ARCHITECTURE.md).
 
 ![LedgerLoop architecture](docs/ledgerloop_architecture.png)
 
